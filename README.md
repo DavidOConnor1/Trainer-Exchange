@@ -2,6 +2,7 @@
 This is my final project for college.
 
 Project Description
+
 This application is designed specifically for Pokémon card vendors, not general consumers. It streamlines the trading process at Pokémon card shows by allowing vendors to:
 
   Search and add consumer cards for trade or sale
