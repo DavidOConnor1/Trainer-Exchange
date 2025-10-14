@@ -1,7 +1,7 @@
 # Pokemon-Vendor-App
 This is my final project for college.
 
-Project Description
+# Project Description
 
 This application is designed specifically for Pokémon card vendors, not general consumers. It streamlines the trading process at Pokémon card shows by allowing vendors to:
 
@@ -16,3 +16,10 @@ This application is designed specifically for Pokémon card vendors, not general
   View the overall value of their current stock
 
 The tool simplifies and standardizes vendor operations, making trades more efficient and transparent.
+
+# Software Design Specification Document
+
+https://docs.google.com/document/d/1jUeOTj1qYSOgWdHMa_P7cZP9wNaFH6J23YYzR8GKj9c/edit?usp=sharing
+
+
+
