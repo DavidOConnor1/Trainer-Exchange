@@ -23,15 +23,17 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className="Nav-Bar"> 
-        <div className="Items-bar">
+        <div className="Nav-Bar" class="container py-6 flex items-center justify-between"> 
+        <nav> 
+          <ul class="flex items-center gap-4">
            <Link href={"/"}> Home </Link>
            <Link href={"/Search"}> Search</Link>
            <Link href={"/Calculator"}> Calculator </Link>
            <Link href={"/Trading"}> Trade </Link>
            <Link href={"/Collection"}> Collection </Link>
            <Link href={"/User"}> User </Link>
-        </div>
+          </ul>
+        </nav>
       </div> 
 
        
