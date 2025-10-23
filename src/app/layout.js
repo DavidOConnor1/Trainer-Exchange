@@ -26,10 +26,10 @@ export default function RootLayout({ children }) {
         <div className="Nav-bar">
            <Link href={"/"}> Home </Link>
            <Link href={"/Search"}> Search</Link>
-           <Link href={"/"}> Home </Link>
-           <Link href={"/"}> Home </Link>
-           <Link href={"/"}> Home </Link>
-           <Link href={"/"}> Home </Link>
+           <Link href={"/Calculator"}> Calculator </Link>
+           <Link href={"/Trading"}> Trade </Link>
+           <Link href={"/Collection"}> Collection </Link>
+           <Link href={"/User"}> User </Link>
         </div>
        
         {children}
