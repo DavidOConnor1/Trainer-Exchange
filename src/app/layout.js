@@ -23,7 +23,8 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className="Nav-bar">
+        <div className="Nav-Bar"> 
+        <div className="Items-bar">
            <Link href={"/"}> Home </Link>
            <Link href={"/Search"}> Search</Link>
            <Link href={"/Calculator"}> Calculator </Link>
@@ -31,6 +32,8 @@ export default function RootLayout({ children }) {
            <Link href={"/Collection"}> Collection </Link>
            <Link href={"/User"}> User </Link>
         </div>
+      </div> 
+
        
         {children}
       </body>
