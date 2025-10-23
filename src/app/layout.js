@@ -25,6 +25,11 @@ export default function RootLayout({ children }) {
       >
         <div className="Nav-bar">
            <Link href={"/"}> Home </Link>
+           <Link href={"/Search"}> Search</Link>
+           <Link href={"/"}> Home </Link>
+           <Link href={"/"}> Home </Link>
+           <Link href={"/"}> Home </Link>
+           <Link href={"/"}> Home </Link>
         </div>
        
         {children}
