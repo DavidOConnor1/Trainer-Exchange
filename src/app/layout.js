@@ -91,10 +91,10 @@ export default function RootLayout({ children }) {
 </div>
 
 
-        {/* Create New */}
+        {/* Trading Section of application */}
         <div className="flex items-center justify-center">
           <Link
-            href="/new"
+            href="/Trading"
             data-tooltip-target="tooltip-new"
             className="inline-flex items-center justify-center w-10 h-10 font-medium bg-blue-600 rounded-full hover:bg-blue-700 group focus:ring-4 focus:ring-blue-300 focus:outline-none dark:focus:ring-blue-800"
           >
@@ -128,7 +128,7 @@ export default function RootLayout({ children }) {
 
         {/* Settings */}
         <Link
-          href="/settings"
+          href="/Collection"
           data-tooltip-target="tooltip-settings"
           className="inline-flex flex-col items-center justify-center px-5 hover:bg-gray-50 dark:hover:bg-gray-800 group"
         >
@@ -161,7 +161,7 @@ export default function RootLayout({ children }) {
 
         {/* Profile */}
         <Link
-          href="/profile"
+          href="/User"
           data-tooltip-target="tooltip-profile"
           className="inline-flex flex-col items-center justify-center px-5 rounded-e-full hover:bg-gray-50 dark:hover:bg-gray-800 group"
         >
