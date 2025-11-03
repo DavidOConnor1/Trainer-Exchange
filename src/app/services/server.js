@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { fetchCardById, searchCards } from './card-data-services';
+import { fetchCardById, searchCards } from './card-data-services/index.js';
 
 dotenv.config();
 

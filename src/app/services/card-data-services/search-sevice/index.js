@@ -1,4 +1,5 @@
-import { fetchCards } from "../api/client";
+import { fetchCards } from "../api/client.js";
+
 
 export async function searchCards(query) {
     if(!query) return [];

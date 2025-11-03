@@ -1,10 +1,12 @@
-import { POKEMON_TCG_API_BASE_URL, HEADERS } from "./config";
 import fetch, { Headers } from "node-fetch";
+import { POKEMON_TCG_API_BASE_URL, HEADERS } from "./config.js";
+
+
 
 //fetch a single card by its id
 export async function fetchCardById(cardId) {
     const res = await fetch(`${POKEMON_TCG_API_BASE_URL}/cards/${cardId}`,{
-        headers: Headers,
+        headers: HEADERS,
     });
 
     //if the res is not okay throw error
@@ -22,7 +24,7 @@ export async function fetchCardById(cardId) {
 export async function fetchCards(params = {}){
     const query = new URLSearchParams(params).toString();
     const res = await fetch(`${POKEMON_TCG_API_BASE_URL}/cards?${query}`, {
-        headers:Headers,
+        headers:HEADERS,
     });
 
     //if res not okay, throw error
