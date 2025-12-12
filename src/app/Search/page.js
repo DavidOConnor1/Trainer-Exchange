@@ -98,9 +98,10 @@ export default function SearchPage() {
         </p>
         <button
         onClick={() => handleAdvancedSearch({type: 'fire', pageSize: 10})}
-        className=""
+        className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors">
+          Example: show fire type cards
+        </button>
       </div>
-
     </div>
-  )
+  );
 }//end search page
