@@ -36,8 +36,12 @@ export default function CardGrid({cards, isLoading}){
                                 ))}
                             </div>
                         )}
+                        {card.set && (
+                            <p className="text-sm text-gray-500 mb-1">Set: {card.set.name}</p>
+                        )}
                     </div>
             ))}
         </div>
-    )
+    );
 }//end card grid
+

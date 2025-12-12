@@ -1,8 +1,9 @@
+'use client';//uses client server
 
-export default function Search() {
-  return (
-   <div className="Search">
-        <h1>Hello I am search</h1>
-   </div>
-  );
+import { useState, useEffect } from "react";
+import SearchBar from "./SearchBar";
+import { pokemonApi } from "../lib/pokemon-card-api";
+
+export default function SearchPage() {
+  const [searchResults, setSearchResults] = useState([]);
 }
