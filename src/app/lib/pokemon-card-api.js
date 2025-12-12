@@ -1,6 +1,7 @@
-import { headers } from "next/headers";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+const USE_PROXY = true;
+const API_BASE_URL = USE_PROXY ? '/api/pokemon' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000');
 
 export const pokemonApi = {
     async fetch(endpoint, options = {}){
