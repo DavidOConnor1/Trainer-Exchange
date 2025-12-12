@@ -39,5 +39,23 @@ export const pokemonApi = {
     }, //end get card
 
     //Paginated Search
-    
+    searchPaginated(query, page = 1, pageSize = 20){
+        const params = new URLSearchParams({
+            q: query,
+            page: page.toString(),
+            pageSize: pageSize.toString(),
+        });
+        return this.fetch(`/api/cards/search/paginated${params}`);
+    }, //end search paginated
+
+    // Advanced search
+    advancedSearch(params){
+        const queryString = new URLSearchParams(params).toString();
+        return this.fetch(`/api/cards/search/advanced?${queryString}`);
+    }, //end advancedSearch
+
+    //health check
+    checkHealth(){
+        return this.fetch('/health');
+    }//end check health
 }//end pokemon api
