@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import SearchBar from "./SearchBar";
-import { pokemonApi } from "../lib/pokemon-card-api";
+import { pokemonApi } from "../../lib/pokemon-card-api";
 import CardGrid from "./CardGrid";
 
 export default function SearchPage() {

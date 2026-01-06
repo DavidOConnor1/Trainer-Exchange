@@ -7,8 +7,10 @@ export const pokemonApi = {
     async fetch(endpoint, options = {}){
         const url = `${API_BASE_URL}${endpoint}`;
 
+        console.log(`making a api call to: ${url}`)//debug log
+
         try{
-            const response = await this.fetch(url, {
+            const response = await fetch(url, {
                 ...options,
                 headers: {
                     'Content-Type' : 'application/json',
@@ -16,14 +18,20 @@ export const pokemonApi = {
                 },
             });
 
+            console.log(`response status: ${response.status} ${response.statusText}`)
+
             if(!response.ok){
                 throw new Error(`API Error: ${response.status}`);
             }//end if
 
-
-            return await response.json();
+            const data = await response.json();
+            console.log(`Response data:`,data);
+            return data;
+            
         } catch(error){
             console.error('API request failed: ',error);
+            console.error('Endpoint failure: ',endpoint);
+            console.error('full url', url);
             throw error;
         }//end catch
     }, //end async fetch
