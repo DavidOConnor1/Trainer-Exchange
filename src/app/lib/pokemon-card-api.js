@@ -1,70 +1,96 @@
+// lib/pokemon-card-api.js - WITH RETRY LOGIC
+class PokemonApi {
+    constructor() {
+        this.baseUrl = '/api/cards';
+        this.retryDelays = [1000, 2000, 3000];
+        this.maxRetries = 2;
+    }
 
-
-const USE_PROXY = true;
-const API_BASE_URL = USE_PROXY ? '/api/pokemon' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000');
-
-export const pokemonApi = {
-    async fetch(endpoint, options = {}){
-        const url = `${API_BASE_URL}${endpoint}`;
-
-        console.log(`making a api call to: ${url}`)//debug log
-
-        try{
+    async fetchWithRetry(url, options = {}, retryCount = 0) {
+        try {
             const response = await fetch(url, {
                 ...options,
-                headers: {
-                    'Content-Type' : 'application/json',
-                    ...options.headers,
-                },
+                signal: AbortSignal.timeout(8000) // 8 second timeout
             });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            return response;
+            
+        } catch (error) {
+            if (retryCount < this.maxRetries) {
+                const delay = this.retryDelays[retryCount] || 1000;
+                console.log(`Retrying in ${delay}ms (attempt ${retryCount + 1}/${this.maxRetries + 1})`);
+                
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return this.fetchWithRetry(url, options, retryCount + 1);
+            }
+            
+            throw error;
+        }
+    }
 
-            console.log(`response status: ${response.status} ${response.statusText}`)
-
-            if(!response.ok){
-                throw new Error(`API Error: ${response.status}`);
-            }//end if
-
+    async getCards(params = {}) {
+        try {
+            const queryParams = new URLSearchParams();
+            
+            // Only pass essential parameters
+            if (params.name) {
+                queryParams.set('name', params.name);
+                if (params.exact) queryParams.set('exact', 'true');
+            } else if (params.q) {
+                queryParams.set('q', params.q);
+            } else {
+                // Default to get some cards
+                queryParams.set('q', 'name:*');
+            }
+            
+            // Always small page size
+            queryParams.set('pageSize', '3');
+            queryParams.set('page', params.page || '1');
+            
+            const url = `${this.baseUrl}?${queryParams.toString()}`;
+            console.log('🔍 Fetching:', url);
+            
+            const response = await this.fetchWithRetry(url);
             const data = await response.json();
-            console.log(`Response data:`,data);
+            
             return data;
             
-        } catch(error){
-            console.error('API request failed: ',error);
-            console.error('Endpoint failure: ',endpoint);
-            console.error('full url', url);
-            throw error;
-        }//end catch
-    }, //end async fetch
+        } catch (error) {
+            console.error('Get cards failed:', error);
+            return {
+                success: false,
+                error: error.name === 'TimeoutError' ? 'Request timed out' : 'Failed to fetch cards',
+                data: [],
+                circuitState: 'error'
+            };
+        }
+    }
 
-    //simple search query, come back and add front end validations
-    searchCards(query){
-        const encodedQuery = encodeURIComponent(query);
-        return this.fetch(`/api/cards/search?q=${encodedQuery}`);
-    }, //end search cards
+    async searchByName(name) {
+        return this.getCards({ name });
+    }
 
-    //retrieve single card
-    getCard(id) {
-        return this.fetch(`/api/cards/${id}`);
-    }, //end get card
+    async searchExact(name) {
+        return this.getCards({ name, exact: true });
+    }
 
-    //Paginated Search
-    searchPaginated(query, page = 1, pageSize = 20){
-        const params = new URLSearchParams({
-            q: query,
-            page: page.toString(),
-            pageSize: pageSize.toString(),
-        });
-        return this.fetch(`/api/cards/search/paginated${params}`);
-    }, //end search paginated
+    // Quick test method
+    async testConnection() {
+        try {
+            const response = await fetch('/api/test');
+            return await response.json();
+        } catch (error) {
+            return {
+                success: false,
+                error: 'Test endpoint not available',
+                details: error.message
+            };
+        }
+    }
+}
 
-    // Advanced search
-    advancedSearch(params){
-        const queryString = new URLSearchParams(params).toString();
-        return this.fetch(`/api/cards/search/advanced?${queryString}`);
-    }, //end advancedSearch
-
-    //health check
-    checkHealth(){
-        return this.fetch('/health');
-    }//end check health
-}//end pokemon api
+export const pokemonApi = new PokemonApi();
