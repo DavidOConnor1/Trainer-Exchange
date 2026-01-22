@@ -32,7 +32,56 @@ async function apiRequest(endpoint, options = {}){//start
         if(contentType && contentType.includes('application/json')) {
             return await response.json();
         }//end if
-    } catch(error){
 
+        return null;
+    } catch(error){
+        console.error('API Request Error', error);
+        throw error;
     }//end catch
-} //end function
+} //end function 
+
+//health check
+export async function checkHealth(){
+    return apiRequest('/health');
+}//end function
+
+//User API
+
+export async function getUsers(){
+    return apiRequest('/users');
+}//end function
+
+export async function getUser(){
+    return apiRequest(`/users/${id}`);
+}//end
+
+export async function createUser(userData){
+    return apiRequest('/users', {
+        method: 'POST',
+        body: userData
+    });
+}//end function 
+
+export async function updateUser(id, userData) {
+    return apiRequest(`/users/${id}`, {
+        method: 'PUT',
+        body: userData,
+    });
+}//end function
+
+export async function deleteUser(id) {
+    return apiRequest(`/users/${id}`, {
+        method: 'DELETE',
+    });
+}//end function
+
+const api = { 
+    checkHealth,
+    getUsers,
+    getUser,
+    createUser,
+    updateUser,
+    deleteUser
+};
+
+export default api;
