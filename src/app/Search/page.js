@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { pokemonSDK } from "../lib/pokemon-sdk-client";
+import { pokemonSDK } from "../pokemon-lib/pokemon-sdk-client";
 import CardGrid from "../../../components/CardGrid";
 
 export default function SearchPage() {
