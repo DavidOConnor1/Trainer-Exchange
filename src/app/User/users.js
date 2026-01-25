@@ -37,11 +37,17 @@ export default function UsersPage() { //start function
 
   const handleDelete = async (id) => { //start handle delete
     try{// start try/catch
-        
+        await api.deleteUser(id);
+        setUsers(users.filter(user => user.id !== id));
     }catch(error) {
-
+        console.error('Failed to delete user: ',error);
     }//end try/catch
   }; //end handle delete
 
+  if(loading) return <div>Loading...</div>;
+
+  return(
+
+  ); //end return
 
 }//end function
