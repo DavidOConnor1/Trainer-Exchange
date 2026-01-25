@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../../../lib-supa/api';
+import api from '../../../lib-supa/v1/api';
 
 export default function UsersPage() { //start function
     const [users, setUsers] = useState([]);
