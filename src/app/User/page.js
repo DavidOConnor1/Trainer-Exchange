@@ -1,23 +1,91 @@
-'use client'
-import { useEffect, useState } from "react";
-export default function Account() {
-  const [user, setUser] = useState(null);
+import { useState, useEffect } from 'react';
+import api from '../../../lib-supa/api';
 
+export default function UsersPage() { //start function
+    const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [newUser, setNewUser] = useState({ name: '', email: '' });
+
+  // Fetch users on component mount
   useEffect(() => {
-    async function fetchUser() {
-      const res = await fetch('http://localhost:4000/users/1');
-      const data = await res.json();
-      setUser(data);
-    }
-    fetchUser();
+    fetchUsers();
   }, []);
 
-  if(!user) return <p>loading...</p>;
+  const fetchUsers = async () => {//start fetchUsers
+    try{//start try/catch/finally
+        const data = await api.getUsers(); //data will hold the fetched user data
+        setUsers(data); //will set the users with the retrieved data
+    } catch(error){
+        console.error('Failed to fetch users: ', error);
+
+    } finally {
+        setLoading(false);
+    }//end try/catch/finally
+  };//end fetch users
+
+  const handleSubmit = async (e) => { //start handle submit
+    e.preventDefault();
+    try{ //start try/catch
+        const createdUser = await api.createUser(newUser);
+        setUsers([...users, createdUser]);
+        setNewUser({name: '', email: ''});
+
+    } catch (error){
+        console.error('failed to created user: ', error);
+    }//end try/catch
+  };//end handle submit
+
+  const handleDelete = async (id) => { //start handle delete
+    try{// start try/catch
+        await api.deleteUser(id);
+        setUsers(users.filter(user => user.id !== id));
+    }catch(error) {
+        console.error('Failed to delete user: ',error);
+    }//end try/catch
+  }; //end handle delete
+
+  if(loading) return <div>Loading...</div>;
+
   return(
-    <div>
-<h1>User Info</h1>
-<p><strong>ID:</strong> {user.id}</p>
-<p><strong>Name:</strong> {user.name}</p>
-  </div>
-  );
-}
+    <div style={{ padding: '20px'}}>
+      <h1>Users</h1>
+
+      {/*Create user form */}
+
+      <form onSubmit={handleSubmit} style={{marginBottom: '20px'}}>
+          <input
+            type="text"
+            placeholder='Name'
+            value={newUser.name}
+            onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+            style={{ marginRight: '10px', padding: '5px'}}
+            />
+
+            <input
+              type='email'
+              placeholder='Email'
+              value={newUser.email}
+              onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+              required
+              style={{ marginRight: '10px', padding: '5px'}}
+              />
+              <button type='submit'>Add User</button>
+      </form>
+
+      {/*User list*/}
+      <ul>
+        {user.map(user => (
+          <li key={user.id} style={{marginBottom: '10px'}}>
+            {user.name} ({user.email})
+            <button 
+            onClick={() => handleDelete(user.id)}
+            style={{ marginLeft: '10px', color: 'red'}}>
+              Delete
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  ); //end return
+
+}//end function
