@@ -47,7 +47,45 @@ export default function UsersPage() { //start function
   if(loading) return <div>Loading...</div>;
 
   return(
+    <div style={{ padding: '20px'}}>
+      <h1>Users</h1>
 
+      {/*Create user form */}
+
+      <form onSubmit={handleSubmit} style={{marginBottom: '20px'}}>
+          <input
+            type="text"
+            placeholder='Name'
+            value={newUser.name}
+            onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+            style={{ marginRight: '10px', padding: '5px'}}
+            />
+
+            <input
+              type='email'
+              placeholder='Email'
+              value={newUser.email}
+              onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+              required
+              style={{ marginRight: '10px', padding: '5px'}}
+              />
+              <button type='submit'>Add User</button>
+      </form>
+
+      {/*User list*/}
+      <ul>
+        {user.map(user => (
+          <li key={user.id} style={{marginBottom: '10px'}}>
+            {user.name} ({user.email})
+            <button 
+            onClick={() => handleDelete(user.id)}
+            style={{ marginLeft: '10px', color: 'red'}}>
+              Delete
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   ); //end return
 
 }//end function
