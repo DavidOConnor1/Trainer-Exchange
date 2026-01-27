@@ -29,6 +29,7 @@ class APIClient{//open api client
             credentials: 'include', //required to talk with cors
         }; //end config
 
+        
         if(config.body && typeof config.body === 'object'){ //open if
             config.body = JSON.stringify(config.body);
         }//end if
@@ -44,9 +45,64 @@ class APIClient{//open api client
             } //close if
 
             const contentType = response.headers.get('content-type');
-            if(contentType)
-        } catch(err) {
+            if(contentType && contentType.includes('application/json')){//start if
+                return await response.json();
+            } //end if
 
+            return null;
+        } catch(err) {
+            console.error(`Error with request [${endpoint}]: `, err);
+            throw err;
         }//end try/catch
     }//end request
+
+    //helps get the supabase client
+    getSupabaseClient(){//start
+        if(typeof window === 'undefined') return null;
+
+        const {createClient} = require('@supanase.supabase-js');
+        return createClient(
+            process.env.PUBLIC_API_URL,
+            process.env.PUBLIC_SUPABASE_ANON_KEY
+        );
+    }//end getclient
+    
+    //backend api endpoints
+    async getPublicCollections(){
+        return this.request('/api/public/collections');
+    }//end get collections
+
+    async getUserCollections(){
+        return this.request('/api/collections');
+    }//end get user collections
+
+    async createCollection(data){
+        return this.request('/api/collections', {
+            method: 'POST',
+            body: data,
+        });
+    }//end create collection
+
+    async getCollectionCards(collectionId){
+        return this.request(`/api/collections/${collectionId}/cards`);
+    }//end get collectioncards
+
+    async addCardToCollection(collectionId, cardData){
+        return this.request(`/api/collections/${collectionId}/cards`, {
+            method: 'POST',
+            body: cardData,
+        });
+    }//end add card to collection
+
+    //health checks 
+    async checkHealth(){
+        return this.request('/health');
+    }//end check health
+
+    async getCircuitBreakerStatus(){
+        return this.request('/api/health/circuit-breakers');
+    }//end circuit
 }//end api client
+
+//export as a singleton instance
+export const apiClient = new APIClient(); 
