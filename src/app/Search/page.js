@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { pokemonSDK } from "../pokemon-lib/v1/pokemon-sdk-client";
-import CardGrid from "../../../components/CardGrid";
+import CardGrid from "../../../components/cardApi/CardGrid";
 
 export default function SearchPage() {
   const [searchResults, setSearchResults] = useState([]);
