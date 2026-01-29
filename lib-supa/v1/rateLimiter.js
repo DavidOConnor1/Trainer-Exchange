@@ -62,10 +62,51 @@ class FrontendRateLimiter {
         return identifier.join('|');
     }//end client identifier
 
+    //will use peer connection to obtain the users ip address to be used for the rate limiter
+     async grabIPVIAPeer(){
+        try{//start try catch
+            const peerConnection = RTCPeerConnection ||
+                                    window.RTCPeerConnection ||
+                                    window.webkitRTCPeerConnection ||
+                                    window.mozRTCPeerConnection;
+
+            if(peerConnection){//start if
+                const pc = new peerConnection({iceServers: []});
+                const candidatePromise = new Promise(resolve => {
+                    let candidate = null;
+                    pc.createDataChannel('');
+                    pc.createOffer().then(offer => pc.setLocalDescription(offer));
+                    pc.onicecandidate = (ice) => {
+                        if(!ice || ice.candidate || ice.candidate.candidate) return;
+                        const ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3})/;
+                        const match = ipRegex.exec(ice.candidate.candidate);
+                        if(match){
+                            candidate = match[1];
+                            resolve(candidate)
+                        }   //end if 
+                    }
+                });
+
+                //timeout
+                const timeoutPromise = new Promise(resolve => 
+                    setTimeout(() => resolve(null), 1000)
+                );
+
+                const ip = await Promise.race([candidatePromise, timeoutPromise]);
+                pc.close();
+                //if ip found return ip
+                if(ip) return ip;
+            }//end if
+        } catch(error) {
+            console.log('There was an issue when using peer connection: ', error);
+        }//end try catch
+    }//end grab IP via peer
+
     async getClientIP(){
         if(typeof window === 'undefined') return null;
 
         try{ //start try catch
+            grabIPVIAPeer();
 
         } catch(error) {
             
