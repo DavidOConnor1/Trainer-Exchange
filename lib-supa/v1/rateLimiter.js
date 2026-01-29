@@ -102,14 +102,53 @@ class FrontendRateLimiter {
         }//end try catch
     }//end grab IP via peer
 
+
     async getClientIP(){
         if(typeof window === 'undefined') return null;
 
         try{ //start try catch
+            //will use peer connection to source the users ip address
             grabIPVIAPeer();
-
         } catch(error) {
-            
+            console.warn('Failure to get client IP: ',error);
         }//end try catch
+        return null;
     }//end get client ip
+
+    //generate a browser finger printer
+    generateFingerPrint(){
+        if(typeof window === 'undefined') return 'server';
+
+        try{ //open try catch
+            const components = [
+                navigator.userAgent,
+                navigator.language,
+                screen.colorDepth,
+                (screen.width || 0).toString(),
+                (screen.height || 0).toString(),
+                new Date().getTimezoneOffset(),
+                !!window.sessionStorage,
+                !!window.localStorage,
+                !!window.indexedDB,
+                (navigator.hardwareConcurrency || 0).toString(),
+                (navigator.maxTouchPoints || 0).toString(),
+                navigator.platform
+            ];
+
+            //generate simple hash of components
+            let hash =0;
+            const combined = components.join('|');
+            for(let i=0; i<combined.length; i++){
+                const char = combined.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }//end for
+
+            return Math.abs(hash).toString(36);
+        } catch(error){
+            return 'unknown';
+        }//end try catch
+    }//end finger print
+
+    
 }//end frontend rate limiter
