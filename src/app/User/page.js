@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib-supa/v1/api';
 
@@ -7,9 +8,9 @@ export default function UsersPage() { //start function
 
   // Fetch users on component mount
   useEffect(() => {
-    fetchUsers();
+   // fetchUsers();
   }, []);
-
+/*
   const fetchUsers = async () => {//start fetchUsers
     try{//start try/catch/finally
         const data = await api.getUsers(); //data will hold the fetched user data
@@ -21,64 +22,101 @@ export default function UsersPage() { //start function
         setLoading(false);
     }//end try/catch/finally
   };//end fetch users
+  */
 
   const handleSubmit = async (e) => { //start handle submit
     e.preventDefault();
 
-   await supabase
+   const {error,data} = await supabase
+        .from("USER TABLE")
+        .insert(newUser)
+        .single();
+
+        //inform us of an error if there is one
+        if(error){
+          console.log("There was an error trying to make a new user: ",error.message);
+        }//end if
+
+        setNewUser({name: '', email: '', password: ''});
   };//end handle submit
 
-  const handleDelete = async (id) => { //start handle delete
-    try{// start try/catch
-        await api.deleteUser(id);
-        setUsers(users.filter(user => user.id !== id));
-    }catch(error) {
-        console.error('Failed to delete user: ',error);
-    }//end try/catch
-  }; //end handle delete
+  const inputStyle = {
+  padding: '12px',
+  borderRadius: '10px',
+  border: 'none',
+  outline: 'none',
+  fontSize: '14px',
+};
 
-  if(loading) return <div>Loading...</div>;
+const buttonStyle = {
+  padding: '12px',
+  borderRadius: '12px',
+  border: 'none',
+  cursor: 'pointer',
+  fontWeight: 'bold',
+  background: 'linear-gradient(135deg, #ff9966, #ff5e62)',
+  color: '#fff',
+  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+  boxShadow: '0 6px 15px rgba(0,0,0,0.2)',
+};
+
+
+  
 
   return(
-    <div style={{ padding: '20px'}}>
-      <h1>Users</h1>
+    <div
+  style={{
+    padding: '30px',
+    maxWidth: '500px',
+    margin: '0 auto',
+    background: 'linear-gradient(135deg, #667eea, #764ba2)',
+    borderRadius: '16px',
+    boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+    color: '#fff',
+  }}
+>
+  <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>
+    👥 Users
+  </h1>
 
-      {/*Create user form */}
+  {/* Create user form */}
+  <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+    <input
+      type="text"
+      placeholder="Name"
+      value={newUser.name}
+      onChange={(e) =>
+        setNewUser((prev) => ({ ...prev, name: e.target.value }))
+      }
+      style={inputStyle}
+    />
 
-      <form onSubmit={handleSubmit} style={{marginBottom: '20px'}}>
-          <input
-            type="text"
-            placeholder='Name'
-            value={newUser.name}
-            onChange={(e) => setNewUser({...newUser, name: e.target.value})}
-            style={{ marginRight: '10px', padding: '5px'}}
-            />
+    <input
+      type="email"
+      placeholder="Email"
+      onChange={(e) =>
+        setNewUser((prev) => ({ ...prev, email: e.target.value }))
+      }
+      required
+      style={inputStyle}
+    />
 
-            <input
-              type='email'
-              placeholder='Email'
-              value={newUser.email}
-              onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-              required
-              style={{ marginRight: '10px', padding: '5px'}}
-              />
-              <button type='submit'>Add User</button>
-      </form>
+    <input
+      type="password"
+      placeholder="Enter Password"
+      onChange={(e) =>
+        setNewUser((prev) => ({ ...prev, password: e.target.value }))
+      }
+      required
+      style={inputStyle}
+    />
 
-      {/*User list*/}
-      <ul>
-        {user.map(user => (
-          <li key={user.id} style={{marginBottom: '10px'}}>
-            {user.name} ({user.email})
-            <button 
-            onClick={() => handleDelete(user.id)}
-            style={{ marginLeft: '10px', color: 'red'}}>
-              Delete
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <button type="submit" style={buttonStyle}>
+      ➕ Add User
+    </button>
+  </form>
+</div>
+
   ); //end return
 
 }//end function

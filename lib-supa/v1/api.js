@@ -76,8 +76,8 @@ export async function deleteUser(id) {
 }//end function
 
 export const supabase = createClient(
-    process.env.SUPASUPA,
-    process.env.PUBLIC_SUPABASE_ANON_KEY
+    process.env.NEXT_PUBLIC_SUPASUPA,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
 const api = { 
