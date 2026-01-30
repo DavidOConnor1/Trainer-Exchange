@@ -1,5 +1,5 @@
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:4000/api'
-
+import { createClient } from "@supabase/supabase-js";
 //api request function
 async function apiRequest(endpoint, options = {}){//start 
     const url = `${API_BASE_URL}${endpoint}`;
@@ -74,6 +74,11 @@ export async function deleteUser(id) {
         method: 'DELETE',
     });
 }//end function
+
+export const supabase = createClient(
+    process.env.SUPASUPA,
+    process.env.PUBLIC_SUPABASE_ANON_KEY
+);
 
 const api = { 
     checkHealth,

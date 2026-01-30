@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import api from '../../../lib-supa/v1/api';
+import { supabase } from '../../../lib-supa/v1/api';
 
 export default function UsersPage() { //start function
-    const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [newUser, setNewUser] = useState({ name: '', email: '' });
+  const [newUser, setNewUser] = useState({ name: '', email: '', password: '' });
 
   // Fetch users on component mount
   useEffect(() => {
@@ -25,14 +24,8 @@ export default function UsersPage() { //start function
 
   const handleSubmit = async (e) => { //start handle submit
     e.preventDefault();
-    try{ //start try/catch
-        const createdUser = await api.createUser(newUser);
-        setUsers([...users, createdUser]);
-        setNewUser({name: '', email: ''});
 
-    } catch (error){
-        console.error('failed to created user: ', error);
-    }//end try/catch
+   await supabase
   };//end handle submit
 
   const handleDelete = async (id) => { //start handle delete

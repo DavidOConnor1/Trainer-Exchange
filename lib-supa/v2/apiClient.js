@@ -1,3 +1,5 @@
+import {createClient} from "@supabase/supabase-js"
+
 const API_BASE_URL = process.env.PUBLIC_API_URL || 'http://localhost:4000';
 
 class APIClient{//open api client
@@ -60,7 +62,7 @@ class APIClient{//open api client
     getSupabaseClient(){//start
         if(typeof window === 'undefined') return null;
 
-        const {createClient} = require('@supanase.supabase-js');
+        
         return createClient(
             process.env.PUBLIC_API_URL,
             process.env.PUBLIC_SUPABASE_ANON_KEY
