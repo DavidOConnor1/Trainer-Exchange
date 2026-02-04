@@ -1,16 +1,27 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib-supa/v1/api';
-
-export default function UsersPage() { //start function
-  const [loading, setLoading] = useState(true);
+export default function UsersPage() { //start function  const [loading, setLoading] = useState(true);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '' });
+  
+  const [users, setUsers] = useState([])
+  
+  
 
  const fetchUser = async () => {//start fetch user
-  const {error} = await supabase
+  //pulls all users from the database in the ascending order of creation
+  const {error, data} = await supabase
         .from("USER TABLE")
         .select("*")
         .order("created_at", {ascending: true});
+
+  if(error){ //start if
+    console.error("There was an error retrieving the users from the database: ", error.message);
+    return;
+  }//end if
+
+  setUsers(data);
+
  }//end fetch user
 
 
@@ -30,6 +41,15 @@ export default function UsersPage() { //start function
 
         setNewUser({name: '', email: '', password: ''});
   };//end handle submit
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
+
+  console.log(users);
+
+
+  //CSS Effects
 
   const inputStyle = {
   padding: '12px',
