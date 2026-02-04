@@ -6,24 +6,15 @@ export default function UsersPage() { //start function
   const [loading, setLoading] = useState(true);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '' });
 
-  // Fetch users on component mount
-  useEffect(() => {
-   // fetchUsers();
-  }, []);
-/*
-  const fetchUsers = async () => {//start fetchUsers
-    try{//start try/catch/finally
-        const data = await api.getUsers(); //data will hold the fetched user data
-        setUsers(data); //will set the users with the retrieved data
-    } catch(error){
-        console.error('Failed to fetch users: ', error);
+ const fetchUser = async () => {//start fetch user
+  const {error} = await supabase
+        .from("USER TABLE")
+        .select("*")
+        .order("created_at", {ascending: true});
+ }//end fetch user
 
-    } finally {
-        setLoading(false);
-    }//end try/catch/finally
-  };//end fetch users
-  */
 
+  //adds user to database
   const handleSubmit = async (e) => { //start handle submit
     e.preventDefault();
 
