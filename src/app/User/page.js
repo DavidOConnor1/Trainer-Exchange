@@ -42,6 +42,20 @@ export default function UsersPage() { //start function  const [loading, setLoadi
         setNewUser({name: '', email: '', password: ''});
   };//end handle submit
 
+
+  //removess user from database
+  const removeUser = async (id = number) => { //start remove user
+   const {error} = await supabase
+        .from("USER TABLE")
+        .delete()
+        .eq("id", id); //will remove the user if the id matches.
+
+        //inform us of an error if there is one
+        if(error){
+          console.log("There was an error trying to remove user: ",error.message);
+        }//end if
+  };//end remove user
+
   useEffect(() => {
     fetchUser();
   }, []);
@@ -94,7 +108,7 @@ const buttonStyle = {
   <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
     <input
       type="text"
-      placeholder="Name"
+      placeholder="Name*"
       value={newUser.name}
       onChange={(e) =>
         setNewUser((prev) => ({ ...prev, name: e.target.value }))
@@ -104,7 +118,7 @@ const buttonStyle = {
 
     <input
       type="email"
-      placeholder="Email"
+      placeholder="Email*"
       onChange={(e) =>
         setNewUser((prev) => ({ ...prev, email: e.target.value }))
       }
@@ -114,7 +128,7 @@ const buttonStyle = {
 
     <input
       type="password"
-      placeholder="Enter Password"
+      placeholder="Enter Password*"
       onChange={(e) =>
         setNewUser((prev) => ({ ...prev, password: e.target.value }))
       }
@@ -126,6 +140,34 @@ const buttonStyle = {
       ➕ Add User
     </button>
   </form>
+
+  <ul style={{marginTop: "10px"}}>
+    {users.map((user, key) => (
+    <li 
+    key={key}
+    style={{
+      border: "1px solid #ccc",
+      borderRadius: "4px",
+      padding: "1rem",
+      marginBottom: "0.5rem",
+    }}
+    >
+      <div>
+        <h3>{user.name}</h3>
+        <p>{user.email}</p>
+        <div> 
+          <textarea placeholder='updated email...' />
+          <button style={{ padding: "0.5rem 1rem", marginRight: "0.5rem"}}>
+              Edit
+          </button>
+          <button style={{padding: "0.5rem 1rem"}} onClick={() => removeUser(user.id)}>Delete</button>
+        </div>
+      </div>
+    </li>
+    ))}
+  </ul>
+
+
 </div>
 
   ); //end return
