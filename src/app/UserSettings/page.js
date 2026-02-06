@@ -1,49 +1,32 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib-supa/v1/api';
-export default function UsersPage() { //start function  const [loading, setLoading] = useState(true);
-  const [newUser, setNewUser] = useState({ name: '', email: '', password: '' });
-  
-  const [users, setUsers] = useState([])
+export default function UsersSettingsPage() { //start function  
+  const [currentUser, setCurrentUser] = useState({ name: '', email: '', password: '' });
+  const [users, setUsers] = useState([]);
   const [newName, setNewName] = useState([""]);
   const [newEmail, setNewEmail] = useState([""]);
   const [newPassword, setNewPassword] = useState([""]);
   
   
+  
 
- const fetchUser = async () => {//start fetch user
+ const fetchUser = async (id = number) => {//start fetch user
   //pulls all users from the database in the ascending order of creation
   const {error, data} = await supabase
         .from("USER TABLE")
-        .select("*")
-        .order("created_at", {ascending: true});
+        .select()
+        .eq("id", id);
+        
 
   if(error){ //start if
-    console.error("There was an error retrieving the users from the database: ", error.message);
+    console.error("There was an error retrieving the user from the database: ", error.message);
     return;
   }//end if
 
-  setUsers(data);
+  setUsers(data); //displays the user data
 
  }//end fetch user
-
-
-  //adds user to database
-  const handleSubmit = async (e) => { //start handle submit
-    e.preventDefault();
-
-   const {error,data} = await supabase
-        .from("USER TABLE")
-        .insert(newUser)
-        .single();
-
-        //inform us of an error if there is one
-        if(error){
-          console.log("There was an error trying to make a new user: ",error.message);
-        }//end if
-
-        setNewUser({name: '', email: '', password: ''});
-  };//end handle submit
 
 
   //removess user from database
@@ -59,16 +42,8 @@ export default function UsersPage() { //start function  const [loading, setLoadi
         }//end if
   };//end remove user
 
-   //removess user from database
+   
   const updateUser = async (id = number) => { //start remove user
-
-    const update = {}; //the update object will prevent unnessacary updates of values if there is no values
-
-    //only adds fields with text, if empty do not update
-    if(newName && newName.trim() !== ''){ //open if
-      update.name = newName.trim();
-    }//end if 
-
    const {error} = await supabase
         .from("USER TABLE")
         .update({name: newName},{email: newEmail}, {password: newPassword})
@@ -79,7 +54,6 @@ export default function UsersPage() { //start function  const [loading, setLoadi
           console.log("There was an error trying to update user: ",error.message);
         }//end if
   };//end remove user
-      
 
   useEffect(() => {
     fetchUser();
@@ -88,27 +62,7 @@ export default function UsersPage() { //start function  const [loading, setLoadi
   
 
 
-  //CSS Effects
 
-  const inputStyle = {
-  padding: '12px',
-  borderRadius: '10px',
-  border: 'none',
-  outline: 'none',
-  fontSize: '14px',
-};
-
-const buttonStyle = {
-  padding: '12px',
-  borderRadius: '12px',
-  border: 'none',
-  cursor: 'pointer',
-  fontWeight: 'bold',
-  background: 'linear-gradient(135deg, #ff9966, #ff5e62)',
-  color: '#fff',
-  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-  boxShadow: '0 6px 15px rgba(0,0,0,0.2)',
-};
 
 
   
@@ -130,7 +84,7 @@ const buttonStyle = {
   </h1>
 
   {/* Create user form */}
-  <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+  <form onSubmit={updateUser} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
     <input
       type="text"
       placeholder="Name*"
@@ -181,14 +135,14 @@ const buttonStyle = {
         <h3>{user.name}</h3>
         <p>{user.email}</p>
         <div> 
-         <textarea placeholder='updated name...'
+            <textarea placeholder='updated name...'
             onChange={(e) => setNewName(e.target.value)} />
           <textarea placeholder='updated email...' 
           onChange={(e) => setNewEmail(e.target.value)}/>
-          <textarea placeholder='updated password'
-            onChange={(e) => setNewPassword(e.target.value)} />
           <button style={{ padding: "0.5rem 1rem", marginRight: "0.5rem"}} 
           onClick={() => updateUser(user.id)}>
+            <textarea placeholder='updated password'
+            onChange={(e) => setNewPassword(e.target.value)} />
               Edit
           </button>
           <button style={{padding: "0.5rem 1rem"}} onClick={() => removeUser(user.id)}>Delete</button>
