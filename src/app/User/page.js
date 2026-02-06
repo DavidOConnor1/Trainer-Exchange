@@ -5,9 +5,9 @@ export default function UsersPage() { //start function  const [loading, setLoadi
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '' });
   
   const [users, setUsers] = useState([])
-  const [newName, setNewName] = useState([""]);
-  const [newEmail, setNewEmail] = useState([""]);
-  const [newPassword, setNewPassword] = useState([""]);
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   
   
 
@@ -69,9 +69,41 @@ export default function UsersPage() { //start function  const [loading, setLoadi
       update.name = newName.trim();
     }//end if 
 
+    //email updates
+    if(newEmail && newEmail.trim() !== ''){//open if 
+      //email regex 
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if(emailRegex.test(newEmail.trim())){ //open nested if
+        update.email = newEmail.trim();
+      }else {
+        console.log("invalid email format");
+        return;
+      }//end nest if else
+    }//end if 
+
+    //password updates
+    if(newPassword && newPassword.trim() !== ''){//open if
+      //password validation
+      if(newPassword >= 6){ //open nested if 
+        update.password = newPassword.trim();
+      } else {
+        console.log("Password is less than 6 characters");
+        return;
+      }//end nest else if 
+    }//end if 
+
+    //don't make update call if there is nothing to update
+    if(Object.keys(update).length === 0){
+      console.log("there is nothing to update");
+      return ;
+    }//end if 
+
+
+
    const {error} = await supabase
         .from("USER TABLE")
-        .update({name: newName},{email: newEmail}, {password: newPassword})
+        .update(update)
         .eq("id", id); //updates user information based on their id 
 
         //inform us of an error if there is one
