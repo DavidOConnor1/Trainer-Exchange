@@ -111,11 +111,12 @@ export const useUserProfile = () => {
 
     //don't make update call if there is nothing to update
     if(Object.keys(update).length === 0){
-      console.log("there is nothing to update");
-      return ;
+      setMessage({text: 'There are no updates to be made'});
+      setUpdating(false);
+      return false;
     }//end if 
 
-
+    try{//open try catch finally
     //updates to the supabase table
    const {error} = await supabase
         .from("USER TABLE")
@@ -126,7 +127,49 @@ export const useUserProfile = () => {
         if(error){
           console.log("There was an error trying to update user: ",error.message);
         }//end if
+
+        //update password through supabase auth if password is changed
+        if(password){ //open if 
+          const {error: authError} = await supabase.auth.updateUser({
+            password: password
+          });
+
+          if(authError){ //open nested if 
+            console.log("There was an error updating the password", authError.message);
+          }//end nested if
+        }//end if 
+
+        //notify the user their account is updated successfully 
+        setMessage({text: 'Your profile has been updated successfully', type: 'success'});
+        
+        //reloads user account
+        fetchUser(id);
+
+        //clear password fields 
+        setNewPassword('');
+        setConfirmPassword('');
+
+        return true;
+
+      } catch(error) {
+        console.log("There was an error trying to update user: ",error);
+        setMessage({text: 'There was an error with updating the user profile', type: 'error'});
+      } finally {
+        setUpdating(false)
+      } //end try catch finally
   };//end update user
+
+  //blanks all fields in the form
+  const resetform = () => { //open reset form
+    //will reset to the users current name and email if they have them
+    if(currentUser){//open if
+      setNewName(currentUser.name || '');
+      setNewEmail(currentUser.email || '');
+    } //close if 
+    setNewPassword('');
+    setConfirmPassword('');
+    setMessage({text: '', type: ''});
+  }//close reset form
 
   
 }//end useUserProfile
