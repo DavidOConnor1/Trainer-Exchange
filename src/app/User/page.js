@@ -59,8 +59,8 @@ export default function UsersPage() { //start function  const [loading, setLoadi
         }//end if
   };//end remove user
 
-   //removess user from database
-  const updateUser = async (id = number) => { //start remove user
+   //updates user in database
+  const updateUser = async (id = number) => { //start update user
 
     const update = {}; //the update object will prevent unnessacary updates of values if there is no values
 
@@ -100,7 +100,7 @@ export default function UsersPage() { //start function  const [loading, setLoadi
     }//end if 
 
 
-
+    //updates to the supabase table
    const {error} = await supabase
         .from("USER TABLE")
         .update(update)
@@ -110,7 +110,7 @@ export default function UsersPage() { //start function  const [loading, setLoadi
         if(error){
           console.log("There was an error trying to update user: ",error.message);
         }//end if
-  };//end remove user
+  };//end update user
       
 
   useEffect(() => {
