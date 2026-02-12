@@ -28,3 +28,15 @@ export const safeCompare = async() => {//start safe compare
     return mismatch;
 }//end safe comapre
 
+export const timingPrevention = async(attempts =1) => {//start timing prevention
+    //creates a visible delay to prevent attackers to track how long a login will take
+    const delay = Math.min(100* Math.pow(2, attempts - 1), 3000);
+    await new Promise(resolve => setTimeout(resolve, delay));
+}//end timing prevention
+
+export const generateSecureToken = (length = 32) => {
+    const array = new Uint8Array(length);
+    crypto.getRandomValues(array);
+    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+}//end generate secure token
+
