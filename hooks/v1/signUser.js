@@ -10,10 +10,6 @@ export const Auth = () => {//open export auth
     const handleSubmit = async(e) => {//open handle submit
         e.preventDefault();
         
-        //creating a new user object to load all the fields into the sign up with validations.
-        //A lot of the code will be similar to the profile settings but code like this tends to overlap
-        const newUser = {};
-
     //only adds fields with text, if empty do not update
     if(name && name.trim() !== ''){ //open if
       newUser.name = name.trim();
@@ -38,13 +34,9 @@ export const Auth = () => {//open export auth
       } //end nested if
     }//end if 
 
-    //don't make sign up call if there is nothing to create an account with
-    if(Object.keys(newUser).length === 0){
-      console.log("user has not entered any details to create an account");
-    }//end if 
 
         if(isSignUp) {//open if
-            const {error:signUpError} = await supabase.auth.signUp(newUser);
+            const {error:signUpError} = await supabase.auth.signUp({name, email, password});
 
             //if error with sign up, it will throw a message
             if(signUpError){//open nested if
@@ -52,7 +44,7 @@ export const Auth = () => {//open export auth
                 return ;
             }//end nested if
         }else {
-             const {error: signInError} = await supabase.auth.signInWithPassword(newUser);
+             const {error: signInError} = await supabase.auth.signInWithPassword({email, password});
             //if error with sign in, it will throw a message
             if(signInError){//open nested if
                 console.error("There was an error with trying to sign in: ", signInError.message);
