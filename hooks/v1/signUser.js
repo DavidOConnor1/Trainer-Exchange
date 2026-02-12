@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../../lib-supa/v1/api";
+import { hashpassword, sanitizeInput, generateSecureToken, timingPrevention } from "../../lib-supa/v1/security";
 
 export const Auth = () => {
   //open export auth
@@ -7,46 +8,49 @@ export const Auth = () => {
 const [name, setName] = useState("");
 const [email, setEmail] = useState("");
 const [password, setPassword] = useState("");
+const [attempts, setAttempts] = useState("");
 
 const handleSubmit = async(e) => {
     e.preventDefault();
     
+    //sanitize inputs
+    sanitizedName = sanitizeInput(name);
+    sanitizedEmail = sanitizeInput(email);
+    sanitizedPassword = sanitizeInput(password);
+
     // Validation
-    if(!email || !email.trim()) {
-        console.log("Email is required");
-        return;
-    }
-    
-    if(!password || !password.trim()) {
-        console.log("Password is required");
-        return;
+    if(!sanitizedEmail || !sanitizedPassword){
+      console.log("email and password are required");
     }
     
     // Email regex validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if(!emailRegex.test(email.trim())) {
+    if(!emailRegex.test(sanitizedEmail)) {
         console.log("Please enter a valid email");
         return;
     }
     
     // Password validation
-    if(password.length < 6) {
+    if(sanitizedPassword.length < 6) {
         console.log("Password must be at least 6 characters");
         return;
     }
 
     if(isSignUp) {
         
+      const hash = await hashpassword(sanitizedPassword);
         const signUpData = {
-            email: email.trim(),
-            password: password.trim(),
+            email: sanitizedEmail,
+            password: hash,
         };
         
         // Add user metadata if name exists
-        if(name && name.trim() !== '') {
+        if(sanitizedName !== '') {
             signUpData.options = {
                 data: {
-                    name: name.trim()
+                    name: sanitizedName || null,
+                    security_token: generateSecureToken(),
+                    created_at: new Date().toISOString()
                 }
             };
         }
@@ -62,9 +66,11 @@ const handleSubmit = async(e) => {
         
     } else {
         
+      await timingPrevention(attempts);
+
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
-            email: email.trim(),
-            password: password.trim()
+            email: sanitizedEmail,
+            password: sanitizedPassword
         });
         
         if(signInError) {

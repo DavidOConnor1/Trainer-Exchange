@@ -40,3 +40,9 @@ export const generateSecureToken = (length = 32) => {
     return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 }//end generate secure token
 
+//prevent injection attacks
+export const sanitizeInput = (input) => {
+      if (typeof input !== 'string') return '';
+  return input.trim().replace(/[<>]/g, '');
+}
+
