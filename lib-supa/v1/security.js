@@ -1,5 +1,4 @@
 
-
 export const safeCompare = async() => {//start safe compare
     if(typeof a !== 'string' || typeof b !== 'string') return false;
 
