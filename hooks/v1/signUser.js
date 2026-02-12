@@ -34,22 +34,30 @@ export const Auth = () => {//open export auth
     if(password && password.trim() !== ''){//open if
       //password validation
       if(password >= 6){ //open nested if 
-        update.password = password.trim();
+        newUser.password = password.trim();
       } //end nested if
     }//end if 
 
-    //don't make update call if there is nothing to update
-    if(Object.keys(update).length === 0){
-      setMessage({text: 'There are no updates to be made'});
-      setUpdating(false);
-      return false;
+    //don't make sign up call if there is nothing to create an account with
+    if(Object.keys(newUser).length === 0){
+      console.log("user has not entered any details to create an account");
     }//end if 
 
         if(isSignUp) {//open if
-            const {error} = await supabase.auth.signUp();
+            const {error:signUpError} = await supabase.auth.signUp(newUser);
 
+            //if error with sign up, it will throw a message
+            if(signUpError){//open nested if
+                console.error("There was an error with the sign up process: ", signUpError.message);
+                return ;
+            }//end nested if
         }else {
-
+             const {error: signInError} = await supabase.auth.signInWithPassword(newUser);
+            //if error with sign in, it will throw a message
+            if(signInError){//open nested if
+                console.error("There was an error with trying to sign in: ", signInError.message);
+                return ;
+            }//end nested if
         }//end else 
     }//close handlesubmit
 
