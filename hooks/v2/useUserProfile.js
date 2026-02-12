@@ -171,5 +171,9 @@ export const useUserProfile = () => {
     setMessage({text: '', type: ''});
   }//close reset form
 
-  
+  const fetchCurrentUser= async() => {//open fetch current user
+
+  } //close fetch current user
+
+
 }//end useUserProfile
