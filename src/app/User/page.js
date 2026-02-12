@@ -6,10 +6,16 @@ export default function UsersPage() {
  //setting session to confirm if user is logged in
  const [session, setSession] = useState(null);
 
+ const fetchSession = async () => {
+  const currentSession = await supabase.auth.getSession();
+  console.log(currentSession);
+  setSession(currentSession.data);
+ }//end fetch session
+
  //if something chnages with the site/app. It will reflect with this
   useEffect(() => {
-    const currentSession = await supabase.auth.getSession();
-  })
+    fetchSession();
+  }, []); //end use Effect
 
 
 
