@@ -29,7 +29,9 @@ export function useAuth() {
   }, []); //end useEffect
 
   //signout option
-  const signOut = supabase.auth.signOut();
+  const signOut = async () => {
+  await supabase.auth.signOut();
+};
 
   return {user, loading, signOut};
 } //end use auth
