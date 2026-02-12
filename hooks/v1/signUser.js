@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../../lib-supa/v1/api";
-import { hashpassword, sanitizeInput, generateSecureToken, timingPrevention } from "../../lib-supa/v1/security";
+import { sanitizeInput, generateSecureToken, timingPrevention } from "../../lib-supa/v1/security";
 
 export const Auth = () => {
   //open export auth
@@ -38,10 +38,10 @@ const handleSubmit = async(e) => {
 
     if(isSignUp) {
         
-      const hash = await hashpassword(sanitizedPassword);
+    
         const signUpData = {
             email: sanitizedEmail,
-            password: hash,
+            password: sanitizedPassword,
         };
         
         // Add user metadata if name exists
