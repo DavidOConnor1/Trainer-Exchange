@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../../lib-supa/v1/api";
 import { sanitizeInput, generateSecureToken, timingPrevention } from "../../lib-supa/v1/security";
+import { authRateLimiter } from "../../lib-supa/v1/loginRateLimiter";
 
 export const Auth = () => {
   //open export auth
@@ -12,11 +13,20 @@ const [attempts, setAttempts] = useState("");
 
 const handleSubmit = async(e) => {
     e.preventDefault();
+
+    //rate limit check(browser side)
+    const ratelimit = authRateLimiter.check(email, 5, 15*60*1000);
+
+    if(ratelimit.limited){//open if
+      const waitMinutes = Math.ceil(ratelimit.remainingTime/60000);
+      console.error(`Too many attempts made, you must wait ${waitMinutes} to try again`);
+      return;
+    }//end if 
     
     //sanitize inputs
-    sanitizedName = sanitizeInput(name);
-    sanitizedEmail = sanitizeInput(email);
-    sanitizedPassword = sanitizeInput(password);
+    const sanitizedName = sanitizeInput(name);
+    const sanitizedEmail = sanitizeInput(email);
+    const sanitizedPassword = sanitizeInput(password);
 
     // Validation
     if(!sanitizedEmail || !sanitizedPassword){
@@ -73,10 +83,15 @@ const handleSubmit = async(e) => {
             password: sanitizedPassword
         });
         
+        //throws error for signin
         if(signInError) {
             console.error("Sign in error: ", signInError.message);
             return;
-        }
+        }//end if
+
+        if(success){
+          authRateLimiter.clear(email);
+        }//end if 
         
         console.log("Sign in successful!", data);
     }

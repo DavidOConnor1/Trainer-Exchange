@@ -55,4 +55,4 @@ class rateLimiter{
     }//end get remaining attempts
 }//end rate limiter
 
-export const authRateLimiter = new rateLimiter();
+export const authRateLimiter01 = new rateLimiter();
