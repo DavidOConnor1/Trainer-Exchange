@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../../lib-supa/v1/api";
 import { sanitizeInput, generateSecureToken, timingPrevention } from "../../lib-supa/v1/security";
-import { authRateLimiter } from "../../lib-supa/v1/loginRateLimiter";
+import { authRateLimiter01 } from "../../lib-supa/v1.1/loginRateLimiter";
 
 export const Auth = () => {
   //open export auth
@@ -15,7 +15,7 @@ const handleSubmit = async(e) => {
     e.preventDefault();
 
     //rate limit check(browser side)
-    const ratelimit = authRateLimiter.check(email ||null , 5, 15*60*1000);
+    const ratelimit = authRateLimiter01.check(email ||null , 5, 15*60*1000);
 
     if(ratelimit.limited){//open if
       const waitMinutes = Math.ceil(ratelimit.remainingTime/60000);
@@ -89,7 +89,7 @@ const handleSubmit = async(e) => {
         }//end if
 
         if(success){
-          authRateLimiter.clear(email);
+          authRateLimiter01.clear(email);
         }//end if 
         
         console.log("Sign in successful!", data);
