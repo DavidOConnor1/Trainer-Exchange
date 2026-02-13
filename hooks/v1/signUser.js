@@ -15,11 +15,11 @@ const handleSubmit = async(e) => {
     e.preventDefault();
 
     //rate limit check(browser side)
-    const ratelimit = authRateLimiter.check(email, 5, 15*60*1000);
+    const ratelimit = authRateLimiter.check(email ||null , 5, 15*60*1000);
 
     if(ratelimit.limited){//open if
       const waitMinutes = Math.ceil(ratelimit.remainingTime/60000);
-      console.error(`Too many attempts made, you must wait ${waitMinutes} to try again`);
+      console.error(`Too many attempts made, you must wait ${waitMinutes} minutes to try again`);
       return;
     }//end if 
     
@@ -48,7 +48,6 @@ const handleSubmit = async(e) => {
 
     if(isSignUp) {
         
-    
         const signUpData = {
             email: sanitizedEmail,
             password: sanitizedPassword,
