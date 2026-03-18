@@ -40,7 +40,7 @@ jobs:
         run: npm run lint || echo "No lint script found"
       
       - name: Run tests
-        run: npm run test || echo "No test script found"
+        run: npm run test:coverage
       
       - name: Check for build errors
         run: npm run build || echo "Build check failed - fix errors"
