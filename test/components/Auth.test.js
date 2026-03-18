@@ -1,0 +1,14 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { Auth } from '../../hooks/v1/signUser';
+
+// Mock the dependencies
+jest.mock('../../lib-supa/v1/api', () => ({
+  supabase: {
+    auth: {
+      signUp: jest.fn(),
+      signInWithPassword: jest.fn()
+    }
+  }
+}));
+

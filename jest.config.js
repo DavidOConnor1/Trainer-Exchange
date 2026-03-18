@@ -6,8 +6,7 @@ module.exports = {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
   },
   testMatch: [
-    '<rootDir>/test/**/*.test.js',
-    '<rootDir>/test/**/*.test.jsx'
+    '<rootDir>/test/**/*.test.js'
   ],
   collectCoverageFrom: [
     'hooks/**/*.js',
