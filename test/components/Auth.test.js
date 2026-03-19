@@ -12,3 +12,16 @@ jest.mock('../../lib-supa/v1/api', () => ({
   }
 }));
 
+jest.mock('../../lib-supa/v1/security', () => ({
+  sanitizeInput: jest.fn((input) => input?.trim() || ''),
+  generateSecureToken: jest.fn(() => 'mock-token-123'),
+  timingPrevention: jest.fn(() => Promise.resolve())
+}));
+
+jest.mock('../../lib-supa/v1.1/loginRateLimiter', () => ({
+  authRateLimiter01: {
+    check: jest.fn(() => ({ limited: false, remainingTime: 0 })),
+    clear: jest.fn()
+  }
+}));
+
