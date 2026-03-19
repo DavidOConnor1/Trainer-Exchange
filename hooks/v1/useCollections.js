@@ -49,11 +49,72 @@ export function useCollections() {//start use collections
          .single();
 
          if(error) throw error;
+
+         //updates local state
+         setCollections(prev => [data, ...prev]);
+         return data;
         } catch(err){
+            setError(err.message);
+            throw err;
+        }//end try catch
+    };//end create collection
 
-        } finally {
+    const updateCollection = async (collectionId, updates) => {
+        try{ 
+            const {data, error} = await supabase
+            .from('collections')
+            .update({
+                ...updates,
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', collectionId)
+            .eq('user_id', user.id)
+            .select()
+            .single();
 
+            if(error) throw error;
+
+            //updates local state
+            setCollections(prev => prev.map(c => (c.id === collectionId ? data : c)));
+            return data;
+        } catch(err) {
+            setError(err.message);
+            throw err;
+        }//end try catch
+    };//end update collection
+
+    const deleteCollection = async(collectionId) => {
+        try{
+            const { error } = await supabase
+            .from('collections')
+            .delete()
+            .eq('id', collectionId)
+            .eq('user_id', user.id);
+
+            if (error) throw error;
+
+            setCollections(prev => prev.filter(c => c.id !== collectionId));
+
+        } catch(err) {
+            setError(err.message);
+            throw err;
+        }//end try catch
+    };//end deleteCollection
+
+    //load the collections on mount
+    useEffect(() => {
+        if(user) {
+            fetchCollections();
         }
-    }//end create collection
+    }, [user]);
 
+    return {
+        collections,
+        loading, 
+        error,
+        createCollection,
+        updateCollection,
+        deleteCollection,
+        refreshCollections: fetchCollections,
+    };
 } //end use collections
