@@ -106,4 +106,46 @@ export function useCards(collectionId){
             throw err;
         }//end try catch
     };//end updatecard
+
+    const removeCard = async (cardId) => {
+        try{
+            const cardToRemove = cards.find(c => c.id === cardId);
+
+            const {error} = await supabase
+            .from('cards')
+            .delete()
+            .eq('id', cardId);
+
+            if(error) throw error;
+
+            //update local state
+            setCards(prev => prev.filter(c => c.id !== cardId));
+
+            //update total value
+            if(cardToRemove){
+                setTotalValue(prev => prev - (cardToRemove.price * cardToRemove.quantity));
+            }//end if 
+        } catch(err) {
+            setError(err.message);
+            throw err;
+        }//end try catch
+    }; //end remove card
+
+    //load cards on mount or when collection changes
+    useEffect(() => {
+        if(collectionId){
+            fetchCards();
+        }
+    }, [collectionId]);
+
+    return {
+        cards,
+        loading,
+        error,
+        totalValue,
+        addCard,
+        updateCard,
+        removeCard,
+        refreshCards: fetchCards
+    };
 }//end useCards
