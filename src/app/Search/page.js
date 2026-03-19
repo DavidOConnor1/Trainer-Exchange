@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { pokemonSDK } from "../pokemon-lib/v1/pokemon-sdk-client";
+const TCGdex = require('@tcgdex/sdk').default
 import CardGrid from "../../../components/cardApi/CardGrid";
 
 export default function SearchPage() {
@@ -11,56 +11,14 @@ export default function SearchPage() {
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Test SDK connection
-  useEffect(() => {
-    const testSDK = async () => {
-      try {
-        const health = await pokemonSDK.checkHealth();
-        console.log('SDK Health:', health);
-        
-        // Load sample data
-        const sample = await pokemonSDK.searchCards('pikachu', { pageSize: 3 });
-        if (sample.success) {
-          setSearchResults(sample.data);
-          setSearchQuery('pikachu');
-        }
-      } catch (err) {
-        console.error('SDK test failed:', err);
-      }
-    };
-    
-    testSDK();
-  }, []);
+ const tcgdex = new TCGdex('en');
 
-  const handleSearch = async (query) => {
-    if (!query.trim()) {
-      setError('Please enter a search term');
-      return;
-    }
-
-    setSearchQuery(query);
-    setIsLoading(true);
-    setError('');
-
-    try {
-      console.log(`Searching with SDK: "${query}"`);
-      const response = await pokemonSDK.searchCards(query, { pageSize: 3 });
-
-      if (response.success) {
-        setSearchResults(response.data || []);
-        console.log(`Found ${response.data?.length || 0} cards`);
-      } else {
-        setError(response.error || 'Search failed');
-        setSearchResults([]);
-      }
-    } catch (err) {
-      setError('Search failed. Please try again.');
-      console.error('Search error:', err);
-      setSearchResults([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+ // Use in an async context
+(async () => {
+  // Retrieve Furret from the Darkness Ablaze Set
+  const card = await tcgdex.card.get('swsh3-136');
+  console.log(card.name, card.dexId); // "Furret"
+})();
 
   return (
     <div className="container mx-auto px-4 py-8">
