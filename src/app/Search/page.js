@@ -17,13 +17,14 @@ export default function SearchPage() {
 (async () => {
   // Retrieve Furret from the Darkness Ablaze Set
   const card = await tcgdex.card.get('swsh3-136');
-  console.log(card.name, card.dexId); // "Furret"
+  console.log(card.name, card.pricing.cardmarket.trend, card.localId); // "Furret"
 })();
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-center mb-8">
-        Pokémon Card Search (Official SDK)
+        Pokémon Card Search 
+        
       </h1>
       
       {/* Search Input */}
