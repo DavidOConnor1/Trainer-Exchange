@@ -25,3 +25,47 @@ jest.mock('../../lib-supa/v1.1/loginRateLimiter', () => ({
   }
 }));
 
+//A mock console methods to keep our test outputs clean
+
+const originalConsole = { ...console };
+beforeEach(() => {
+  console.log = jest.fn();
+  console.error = jest.fn();
+})
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
+
+afterAll(() => {
+  console.log = originalConsole.log;
+  console.error = originalConsole.error;
+});
+
+describe('Auth Component - Validation Test', () => {
+  describe('Form Rendering', () => {
+    test('renders sign in form by default', () => {
+      render(<Auth />);
+
+      expect(screen.getByText('Sign In')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('example@email.com')).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('ChooseYourUserName')).not.toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Minimum of 6 Characters is Required')).toBeInTheDocument();
+    }); //end render sign in test
+
+    test('switches to sign up form when the toggle button is clicked', async() => {
+      render(<Auth />);
+
+      const toggleButton = screen.getByText('Switch to Sign Up');
+      await userEvent.click(toggleButton);
+
+      expect(screen.getByText('Sign Up')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('ChooseYourUsername')).toBeInTheDocument();
+      expect(screen.getByText('Switch to Sign In')).toBeInTheDocument();
+
+    }); //end toggle to sign up test
+  }); //end describe form rendering
+
+  
+})
+
