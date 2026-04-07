@@ -4,24 +4,23 @@ import { sanitizeInput, generateSecureToken, timingPrevention } from "../../lib-
 import { authRateLimiter01 } from "../../lib-supa/v1.1/loginRateLimiter";
 
 export const Auth = () => {
-  //open export auth
-  const [isSignUp, setIsSignedUp] = useState(false);
-const [name, setName] = useState("");
-const [email, setEmail] = useState("");
-const [password, setPassword] = useState("");
-const [attempts, setAttempts] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [attempts, setAttempts] = useState(0); 
 
-const handleSubmit = async(e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault();
 
     //rate limit check(browser side)
-    const ratelimit = authRateLimiter01.check(email ||null , 5, 15*60*1000);
+    const ratelimit = authRateLimiter01.check(email || null, 5, 15*60*1000);
 
-    if(ratelimit.limited){//open if
+    if(ratelimit.limited) {
       const waitMinutes = Math.ceil(ratelimit.remainingTime/60000);
       console.error(`Too many attempts made, you must wait ${waitMinutes} minutes to try again`);
       return;
-    }//end if 
+    }
     
     //sanitize inputs
     const sanitizedName = sanitizeInput(name);
@@ -29,92 +28,105 @@ const handleSubmit = async(e) => {
     const sanitizedPassword = sanitizeInput(password);
 
     // Validation
-    if(!sanitizedEmail || !sanitizedPassword){
+    if(!sanitizedEmail || !sanitizedPassword) {
       console.log("email and password are required");
+      return; // Added return here
     }
     
     // Email regex validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if(!emailRegex.test(sanitizedEmail)) {
-        console.log("Please enter a valid email");
-        return;
+      console.log("Please enter a valid email");
+      return;
     }
     
     // Password validation
     if(sanitizedPassword.length < 6) {
-        console.log("Password must be at least 6 characters");
-        return;
+      console.log("Password must be at least 6 characters");
+      return;
     }
 
     if(isSignUp) {
-        
-        const signUpData = {
-            email: sanitizedEmail,
-            password: sanitizedPassword,
+      const signUpData = {
+        email: sanitizedEmail,
+        password: sanitizedPassword,
+      };
+      
+      // Add user metadata if name exists
+      if(sanitizedName !== '') {
+        signUpData.options = {
+          data: {
+            name: sanitizedName,
+            security_token: generateSecureToken(),
+            created_at: new Date().toISOString()
+          }
         };
-        
-        // Add user metadata if name exists
-        if(sanitizedName !== '') {
-            signUpData.options = {
-                data: {
-                    name: sanitizedName || null,
-                    security_token: generateSecureToken(),
-                    created_at: new Date().toISOString()
-                }
-            };
-        }
-        
-        const { data, error: signUpError } = await supabase.auth.signUp(signUpData);
+      }
+      
+      const { data, error: signUpError } = await supabase.auth.signUp(signUpData);
 
-        if(signUpError) {
-            console.error("Sign up error: ", signUpError.message);
-            return;
-        }
-        
-        console.log("Sign up successful! Check your email to confirm.", data);
-        
+      if(signUpError) {
+        console.error("Sign up error: ", signUpError.message);
+        return;
+      }
+      
+      // Define success for sign up
+      const success = !signUpError && data?.user;
+      
+      if(success) {
+        authRateLimiter01.clear(email);
+      }
+      
+      console.log("Sign up successful! Check your email to confirm.", data);
+      
+      // Clear form on success
+      setName("");
+      setEmail("");
+      setPassword("");
+      
     } else {
-        
       await timingPrevention(attempts);
+      
+      // Increment attempts for next time
+      setAttempts(prev => prev + 1);
 
-        const { data, error: signInError } = await supabase.auth.signInWithPassword({
-            email: sanitizedEmail,
-            password: sanitizedPassword
-        });
-        
-        //throws error for signin
-        if(signInError) {
-            console.error("Sign in error: ", signInError.message);
-            return;
-        }//end if
-
-        if(success){
-          authRateLimiter01.clear(email);
-        }//end if 
-        
-        console.log("Sign in successful!", data);
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: sanitizedEmail,
+        password: sanitizedPassword
+      });
+      
+      if(signInError) {
+        console.error("Sign in error: ", signInError.message);
+        return;
+      }
+      
+      // Define success for sign in
+      const success = !signInError && data?.user;
+      
+      if(success) {
+        authRateLimiter01.clear(email);
+        // Clear form on success
+        setName("");
+        setEmail("");
+        setPassword("");
+        setAttempts(0); // Reset attempts on successful login
+      }
+      
+      console.log("Sign in successful!", data);
     }
-    
-    // Clear form
-    setName("");
-    setEmail("");
-    setPassword("");
-}
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-gray-950 p-10 rounded-2xl shadow-2xl border border-gray-800">
-        {/* Header Section */}
         <div className="text-center">
           <h2 className="mt-6 text-3xl font-extrabold text-white">
             {isSignUp ? "Sign Up" : "Sign In"}
           </h2>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
           <div className="space-y-4">
-            {/* Username Field - Conditional */}
             {isSignUp && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -146,7 +158,6 @@ const handleSubmit = async(e) => {
               </div>
             )}
 
-            {/* Email Field */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
                 Email
@@ -164,7 +175,7 @@ const handleSubmit = async(e) => {
                   </svg>
                 </div>
                 <input
-                  type="email"
+                  type="text"
                   placeholder="example@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -173,7 +184,6 @@ const handleSubmit = async(e) => {
               </div>
             </div>
 
-            {/* Password Field */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
                 Password
@@ -204,7 +214,6 @@ const handleSubmit = async(e) => {
             </div>
           </div>
 
-          {/* Submit Button */}
           <div>
             <button
               type="submit"
@@ -214,11 +223,10 @@ const handleSubmit = async(e) => {
             </button>
           </div>
 
-          {/* Toggle Button */}
           <div className="text-center">
             <button
               type="button"
-              onClick={() => setIsSignedUp(!isSignUp)}
+              onClick={() => setIsSignUp(!isSignUp)} // Fixed: using setIsSignUp
               className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors duration-200"
             >
               Switch to {isSignUp ? "Sign In" : "Sign Up"}
@@ -228,4 +236,4 @@ const handleSubmit = async(e) => {
       </div>
     </div>
   );
-}; //end export auth
+};
