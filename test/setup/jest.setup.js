@@ -1,5 +1,5 @@
-import '@testing-library/jest-dom';
-import { jest } from '@jest/globals';
+// test/setup/jest.setup.js
+require('@testing-library/jest-dom');
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
@@ -20,7 +20,7 @@ class LocalStorageMock {
   getItem(key) { return this.store[key] || null; }
   setItem(key, value) { this.store[key] = String(value); }
   removeItem(key) { delete this.store[key]; }
-}//end local storage mock
+}
 
 global.localStorage = new LocalStorageMock();
 
@@ -30,4 +30,4 @@ global.console = {
   log: jest.fn(),
   error: jest.fn(),
   warn: jest.fn()
-}; //end global console
+};
