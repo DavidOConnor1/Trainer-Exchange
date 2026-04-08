@@ -5,11 +5,6 @@ export default function UsersSettingsPage() { //start function
   
   
   
-  
-
- 
-
-
   //removess user from database
   const removeUser = async (id = number) => { //start remove user
    const {error} = await supabase
