@@ -21,7 +21,8 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "supabase": "^2.72.8",
-    "supabase-js": "^0.0.1-security"
+    "supabase-js": "^0.0.1-security",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",

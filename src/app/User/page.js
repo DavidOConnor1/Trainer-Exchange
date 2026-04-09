@@ -2,17 +2,19 @@
 import { useState, useEffect } from "react";
 import { Auth } from "../../../hooks/v1/signUser";
 import { useAuth } from "../../../hooks/v1/useAuth";
-import { useCollections } from "../../../hooks/v1/useCollections";
+import { useCollections } from "../../../hooks/v1/useCollectionStore"
+import { supabase } from "../../../lib-supa/v1/api";
 import { Settings, Plus, Trash2, FolderPlus, X, Package, DollarSign } from "lucide-react";
 
 export default function UsersPage() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const { 
     collections, 
-    loading: loadingCollections, 
+    loading: collectionsLoading, 
     error,
     createCollection, 
-    deleteCollection 
+    deleteCollection,
+    refreshCollections
   } = useCollections();
   
   const [showSettings, setShowSettings] = useState(false);
@@ -21,23 +23,21 @@ export default function UsersPage() {
   const [selectedCollection, setSelectedCollection] = useState(null);
   const [newCollectionName, setNewCollectionName] = useState("");
   const [newCollectionDescription, setNewCollectionDescription] = useState("");
-  
-  // State for card statistics (you'll need to fetch these separately)
   const [collectionsStats, setCollectionsStats] = useState({});
   const [loadingStats, setLoadingStats] = useState(false);
 
   // Fetch card statistics for each collection
   const fetchCollectionStats = async () => {
-    if (!collections.length) return;
+    if (!collections.length) {
+      setCollectionsStats({});
+      return;
+    }
     
     setLoadingStats(true);
     try {
       const stats = {};
-      let totalValue = 0;
-      let totalCards = 0;
       
       for (const collection of collections) {
-        // Get card count and total value for this collection
         const { data: cardsData, error } = await supabase
           .from('cards')
           .select('price, quantity')
@@ -48,15 +48,10 @@ export default function UsersPage() {
             return sum + (card.price * (card.quantity || 1));
           }, 0);
           
-          const collectionCardCount = cardsData.length;
-          
           stats[collection.id] = {
-            card_count: collectionCardCount,
+            card_count: cardsData.length,
             total_value: collectionTotalValue
           };
-          
-          totalValue += collectionTotalValue;
-          totalCards += collectionCardCount;
         }
       }
       
@@ -70,10 +65,10 @@ export default function UsersPage() {
 
   // Fetch stats whenever collections change
   useEffect(() => {
-    if (collections.length > 0) {
+    if (collections.length > 0 && !collectionsLoading) {
       fetchCollectionStats();
     }
-  }, [collections]);
+  }, [collections, collectionsLoading]);
 
   // Calculate totals for the stats cards
   const calculateOverallTotals = () => {
@@ -101,7 +96,7 @@ export default function UsersPage() {
       setNewCollectionDescription("");
     } catch (err) {
       console.error("Error creating collection:", err);
-      alert("Failed to create collection");
+      alert("Failed to create collection: " + err.message);
     }
   };
 
@@ -115,11 +110,21 @@ export default function UsersPage() {
       setSelectedCollection(null);
     } catch (err) {
       console.error("Error deleting collection:", err);
-      alert("Failed to delete collection");
+      alert("Failed to delete collection: " + err.message);
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  // Show loading state while auth is initializing
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return <Auth />;
@@ -127,7 +132,7 @@ export default function UsersPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
+      {/* Header - Same as before */}
       <div className="fixed z-20 w-full max-w-lg -translate-x-1/2 top-4 left-1/2">
         <div className="w-full h-16 bg-white border border-gray-200 rounded-full dark:bg-gray-700 dark:border-gray-600 shadow-sm">
           <div className="grid h-full max-w-lg grid-cols-[70%_30%] mx-auto px-4">
@@ -179,7 +184,7 @@ export default function UsersPage() {
               </h3>
             </div>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {loadingCollections ? "..." : collections.length}
+              {collectionsLoading ? "..." : collections.length}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {loadingStats ? "Loading..." : `${totalCardsCount} total cards`}
@@ -200,7 +205,7 @@ export default function UsersPage() {
           </div>
         </div>
 
-        {/* Create Collection Section */}
+        {/* Collections Section */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -218,10 +223,21 @@ export default function UsersPage() {
           </div>
 
           <div className="p-4">
-            {loadingCollections ? (
-              <div className="text-center py-8 text-gray-500">Loading collections...</div>
+            {collectionsLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-2 text-gray-500">Loading collections...</p>
+              </div>
             ) : error ? (
-              <div className="text-center py-8 text-red-500">Error: {error}</div>
+              <div className="text-center py-8 text-red-500">
+                <p>Error: {error}</p>
+                <button 
+                  onClick={() => refreshCollections()}
+                  className="mt-2 text-blue-600 hover:underline"
+                >
+                  Try again
+                </button>
+              </div>
             ) : collections.length === 0 ? (
               // No collections - Show centered create button
               <div className="flex flex-col items-center justify-center py-12">
@@ -252,9 +268,12 @@ export default function UsersPage() {
                       key={collection.id}
                       className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
                     >
-                      <div className="flex-1 cursor-pointer">
+                      <div className="flex-1">
                         <h3 className="font-medium text-gray-900 dark:text-white">
                           {collection.name}
+                          {collection.isTemp && (
+                            <span className="ml-2 text-xs text-yellow-500">Saving...</span>
+                          )}
                         </h3>
                         {collection.description && (
                           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
@@ -277,6 +296,7 @@ export default function UsersPage() {
                         }}
                         className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                         aria-label="Delete collection"
+                        disabled={collection.isTemp}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
