@@ -6,23 +6,43 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "lint:strict": "next lint --max-warnings 0",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.93.3",
+    "@tcgdex/sdk": "^2.7.1",
     "express": "^5.1.0",
+    "lucide-react": "^1.7.0",
     "next": "15.5.6",
-    "pokemontcgsdk": "^2.0.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "supabase": "^2.72.8",
-    "supabase-js": "^0.0.1-security"
+    "supabase-js": "^0.0.1-security",
+    "zustand": "^5.0.12",
+    "sanitize-html": "^2.17.3"
   },
   "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.2",
+    "@babel/preset-react": "^7.28.5",
     "@eslint/eslintrc": "^3",
+    "@supabase/supabase-js": "^2.99.2",
     "@tailwindcss/postcss": "^4",
-    "eslint": "^9",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "babel-jest": "^30.3.0",
+    "eslint": "^9.39.4",
     "eslint-config-next": "15.5.6",
+    "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0",
+    "mockingoose": "^3.0.0",
+    "nock": "^14.0.11",
     "tailwindcss": "^4"
   }
 }

@@ -4,78 +4,107 @@ import { sanitizeInput, generateSecureToken, timingPrevention } from "../../lib-
 import { authRateLimiter01 } from "../../lib-supa/v1.1/loginRateLimiter";
 
 export const Auth = () => {
-  //open export auth
-  const [isSignUp, setIsSignedUp] = useState(false);
-const [name, setName] = useState("");
-const [email, setEmail] = useState("");
-const [password, setPassword] = useState("");
-const [attempts, setAttempts] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [attempts, setAttempts] = useState(0);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
-const handleSubmit = async(e) => {
+  // Generate secure token for new users
+  const generateSecureToken = () => {
+    return crypto.randomUUID ? crypto.randomUUID() : 
+      Math.random().toString(36).substring(2) + Date.now().toString(36);
+  };
+
+  // Timing prevention to avoid brute force attacks
+  const timingPrevention = async (attemptCount) => {
+    const delay = Math.min(100 * Math.pow(2, attemptCount), 3000);
+    await new Promise(resolve => setTimeout(resolve, delay));
+  };
+
+  const handleSubmit = async(e) => {
     e.preventDefault();
+    
+    // Clear previous error
+    setErrorMessage("");
 
     //rate limit check(browser side)
     const ratelimit = authRateLimiter01.check(email ||null , 5, 15*60*1000);
 
-    if(ratelimit.limited){//open if
-      const waitMinutes = Math.ceil(ratelimit.remainingTime/60000);
-      console.error(`Too many attempts made, you must wait ${waitMinutes} minutes to try again`);
+    // Validate using sanitized values
+    if(!sanitizedEmail || !sanitizedPassword) {
+      setErrorMessage("Email and password are required");
       return;
-    }//end if 
+    }
     
-    //sanitize inputs
-    const sanitizedName = sanitizeInput(name);
-    const sanitizedEmail = sanitizeInput(email);
-    const sanitizedPassword = sanitizeInput(password);
+    // Email regex validation using security service
+    if(!securityService.isValidEmail(sanitizedEmail)) {
+      setErrorMessage("Please enter a valid email address");
+      return;
+    }
+    
+    // Password validation using security service
+    if(sanitizedPassword.length < 8) {
+      setErrorMessage("Password must be at least 8 characters");
+      return;
+    }
 
-    // Validation
-    if(!sanitizedEmail || !sanitizedPassword){
-      console.log("email and password are required");
+    // Rate limit check AFTER validation (using sanitized email)
+    const ratelimit = authRateLimiter01.check(sanitizedEmail || null, 5, 15*60*1000);
+
+    if(ratelimit.limited) {
+      const waitMinutes = Math.ceil(ratelimit.remainingTime/60000);
+      setErrorMessage(`Too many attempts. Please wait ${waitMinutes} minutes.`);
+      return;
     }
-    
-    // Email regex validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if(!emailRegex.test(sanitizedEmail)) {
-        console.log("Please enter a valid email");
-        return;
-    }
-    
-    // Password validation
-    if(sanitizedPassword.length < 6) {
-        console.log("Password must be at least 6 characters");
-        return;
-    }
+
+    setLoading(true);
 
     if(isSignUp) {
-        
-        const signUpData = {
-            email: sanitizedEmail,
-            password: sanitizedPassword,
+      const signUpData = {
+        email: sanitizedEmail,
+        password: sanitizedPassword,
+      };
+      
+      // Add user metadata if name exists
+      if(sanitizedName && sanitizedName !== '') {
+        signUpData.options = {
+          data: {
+            name: sanitizedName,
+            security_token: generateSecureToken(),
+            created_at: new Date().toISOString()
+          }
         };
-        
-        // Add user metadata if name exists
-        if(sanitizedName !== '') {
-            signUpData.options = {
-                data: {
-                    name: sanitizedName || null,
-                    security_token: generateSecureToken(),
-                    created_at: new Date().toISOString()
-                }
-            };
-        }
-        
-        const { data, error: signUpError } = await supabase.auth.signUp(signUpData);
+      }
+      
+      const { data, error: signUpError } = await supabase.auth.signUp(signUpData);
 
-        if(signUpError) {
-            console.error("Sign up error: ", signUpError.message);
-            return;
-        }
-        
-        console.log("Sign up successful! Check your email to confirm.", data);
-        
+      if(signUpError) {
+        setErrorMessage(securityService.escapeHtml(signUpError.message));
+        setLoading(false);
+        return;
+      }
+      
+      const success = !!data?.user;
+      
+      if(success) {
+        authRateLimiter01.clear(sanitizedEmail); // Use sanitized email
+      }
+      
+      console.log("Sign up successful! Check your email to confirm.", data);
+      
+      // Clear form on success
+      setName("");
+      setEmail("");
+      setPassword("");
+      setErrorMessage("");
+      
     } else {
-        
       await timingPrevention(attempts);
+      
+      setAttempts(prev => prev + 1);
 
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
             email: sanitizedEmail,
@@ -95,26 +124,44 @@ const handleSubmit = async(e) => {
         console.log("Sign in successful!", data);
     }
     
-    // Clear form
-    setName("");
-    setEmail("");
-    setPassword("");
-}
+    setLoading(false);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-gray-950 p-10 rounded-2xl shadow-2xl border border-gray-800">
-        {/* Header Section */}
         <div className="text-center">
           <h2 className="mt-6 text-3xl font-extrabold text-white">
             {isSignUp ? "Sign Up" : "Sign In"}
           </h2>
         </div>
 
-        {/* Form */}
+        {/* Error Message Display */}
+        {errorMessage && (
+          <div className="rounded-lg bg-red-500/10 border border-red-500/50 p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-400">{errorMessage}</p>
+              </div>
+              <button
+                onClick={() => setErrorMessage("")}
+                className="flex-shrink-0 text-gray-400 hover:text-gray-300"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
           <div className="space-y-4">
-            {/* Username Field - Conditional */}
             {isSignUp && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -140,13 +187,17 @@ const handleSubmit = async(e) => {
                     placeholder="ChooseYourUserName"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="appearance-none block w-full pl-10 pr-3 py-3 bg-gray-900 border border-gray-700 rounded-lg placeholder-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm transition-all duration-200"
+                    disabled={loading}
+                    maxLength="50"
+                    className="appearance-none block w-full pl-10 pr-3 py-3 bg-gray-900 border border-gray-700 rounded-lg placeholder-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Letters, numbers, spaces, hyphens, and periods only
+                </p>
               </div>
             )}
 
-            {/* Email Field */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
                 Email
@@ -164,16 +215,17 @@ const handleSubmit = async(e) => {
                   </svg>
                 </div>
                 <input
-                  type="email"
+                  type="text"
                   placeholder="example@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full pl-10 pr-3 py-3 bg-gray-900 border border-gray-700 rounded-lg placeholder-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm transition-all duration-200"
+                  disabled={loading}
+                  maxLength="254"
+                  className="appearance-none block w-full pl-10 pr-3 py-3 bg-gray-900 border border-gray-700 rounded-lg placeholder-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
 
-            {/* Password Field */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
                 Password
@@ -195,31 +247,51 @@ const handleSubmit = async(e) => {
                 </div>
                 <input
                   type="password"
-                  placeholder="Minimum of 6 Characters is Required"
+                  placeholder="Minimum of 8 Characters is Required"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full pl-10 pr-3 py-3 bg-gray-900 border border-gray-700 rounded-lg placeholder-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm transition-all duration-200"
+                  disabled={loading}
+                  maxLength="128"
+                  className="appearance-none block w-full pl-10 pr-3 py-3 bg-gray-900 border border-gray-700 rounded-lg placeholder-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
+              {password && password.length > 0 && (
+                <p className={`text-xs mt-1 ${
+                  password.length < 8 ? 'text-red-500' : 'text-green-500'
+                }`}>
+                  {password.length < 8 ? 'Password is too short' : 'Password length is good'}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Submit Button */}
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-gray-950 transition-all duration-200"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-gray-950 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSignUp ? "Sign Up" : "Sign In"}
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>{isSignUp ? "Signing up..." : "Signing in..."}</span>
+                </div>
+              ) : (
+                <span>{isSignUp ? "Sign Up" : "Sign In"}</span>
+              )}
             </button>
           </div>
 
-          {/* Toggle Button */}
           <div className="text-center">
             <button
               type="button"
-              onClick={() => setIsSignedUp(!isSignUp)}
-              className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors duration-200"
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setErrorMessage("");
+                setAttempts(0);
+              }}
+              disabled={loading}
+              className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors duration-200 disabled:opacity-50"
             >
               Switch to {isSignUp ? "Sign In" : "Sign Up"}
             </button>
@@ -228,4 +300,4 @@ const handleSubmit = async(e) => {
       </div>
     </div>
   );
-}; //end export auth
+};
