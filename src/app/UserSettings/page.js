@@ -174,7 +174,7 @@ export default function UsersSettingsPage() {
   }
 
   // Redirect if no user
-  if (!authLoading && !user) {
+  if (!user) {
     router.push('/');
     return null;
   }
