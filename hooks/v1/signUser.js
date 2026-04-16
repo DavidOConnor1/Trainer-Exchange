@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../../lib-supa/v1/api";
-import securityService from "../../lib/security"; // Use the existing security module
+import { sanitizeInput, generateSecureToken, timingPrevention } from "../../lib-supa/v1/security";
 import { authRateLimiter01 } from "../../lib-supa/v1.1/loginRateLimiter";
 
 export const Auth = () => {
@@ -30,10 +30,8 @@ export const Auth = () => {
     // Clear previous error
     setErrorMessage("");
 
-    // Use the existing security service for sanitization
-    const sanitizedName = securityService.sanitizeName(name, 50);
-    const sanitizedEmail = securityService.sanitizeEmail(email, 254);
-    const sanitizedPassword = securityService.sanitizePassword(password, 128);
+    //rate limit check(browser side)
+    const ratelimit = authRateLimiter01.check(email ||null , 5, 15*60*1000);
 
     // Validate using sanitized values
     if(!sanitizedEmail || !sanitizedPassword) {
@@ -108,34 +106,22 @@ export const Auth = () => {
       
       setAttempts(prev => prev + 1);
 
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: sanitizedEmail,
-        password: sanitizedPassword
-      });
-      
-      if(signInError) {
-        // Display user-friendly error message
-        if(signInError.message === "Invalid login credentials") {
-          setErrorMessage("Invalid email or password. Please try again.");
-        } else {
-          setErrorMessage(securityService.escapeHtml(signInError.message));
-        }
-        setLoading(false);
-        return;
-      }
-      
-      const success = !!data?.user;
-      
-      if(success) {
-        authRateLimiter01.clear(sanitizedEmail); // Use sanitized email
-        setName("");
-        setEmail("");
-        setPassword("");
-        setAttempts(0);
-        setErrorMessage("");
-      }
-      
-      console.log("Sign in successful!", data);
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+            email: sanitizedEmail,
+            password: sanitizedPassword
+        });
+        
+        //throws error for signin
+        if(signInError) {
+            console.error("Sign in error: ", signInError.message);
+            return;
+        }//end if
+
+        if(success){
+          authRateLimiter01.clear(email);
+        }//end if 
+        
+        console.log("Sign in successful!", data);
     }
     
     setLoading(false);
