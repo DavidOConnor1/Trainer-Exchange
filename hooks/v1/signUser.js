@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../../lib-supa/v1/api";
-import { sanitizeInput, generateSecureToken, timingPrevention } from "../../lib-supa/v1/security";
+import securityService from "../../lib/security"; // Use the existing security module
 import { authRateLimiter01 } from "../../lib-supa/v1.1/loginRateLimiter";
 
 export const Auth = () => {
@@ -9,8 +9,20 @@ export const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [attempts, setAttempts] = useState(0);
-  const [errorMessage, setErrorMessage] = useState(""); // Added error state
-  const [loading, setLoading] = useState(false); // Optional: loading state
+  const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Generate secure token for new users
+  const generateSecureToken = () => {
+    return crypto.randomUUID ? crypto.randomUUID() : 
+      Math.random().toString(36).substring(2) + Date.now().toString(36);
+  };
+
+  // Timing prevention to avoid brute force attacks
+  const timingPrevention = async (attemptCount) => {
+    const delay = Math.min(100 * Math.pow(2, attemptCount), 3000);
+    await new Promise(resolve => setTimeout(resolve, delay));
+  };
 
   const handleSubmit = async(e) => {
     e.preventDefault();
@@ -18,7 +30,7 @@ export const Auth = () => {
     // Clear previous error
     setErrorMessage("");
 
-    //rate limit check(browser side)
+    // Rate limit check (browser side)
     const ratelimit = authRateLimiter01.check(email || null, 5, 15*60*1000);
 
     if(ratelimit.limited) {
@@ -27,10 +39,10 @@ export const Auth = () => {
       return;
     }
     
-    //sanitize inputs
-    const sanitizedName = sanitizeInput(name);
-    const sanitizedEmail = sanitizeInput(email);
-    const sanitizedPassword = sanitizeInput(password);
+    // Use the existing security service for sanitization
+    const sanitizedName = securityService.sanitizeName(name, 50);
+    const sanitizedEmail = securityService.sanitizeEmail(email, 254);
+    const sanitizedPassword = securityService.sanitizePassword(password, 128);
 
     // Validation
     if(!sanitizedEmail || !sanitizedPassword) {
@@ -38,16 +50,16 @@ export const Auth = () => {
       return;
     }
     
-    // Email regex validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if(!emailRegex.test(sanitizedEmail)) {
+    // Email regex validation using security service
+    if(!securityService.isValidEmail(sanitizedEmail)) {
       setErrorMessage("Please enter a valid email address");
       return;
     }
     
-    // Password validation
-    if(sanitizedPassword.length < 6) {
-      setErrorMessage("Password must be at least 6 characters");
+    // Password validation using security service
+    const passwordStrength = securityService.checkPasswordStrength(sanitizedPassword);
+    if(sanitizedPassword.length < 8) {
+      setErrorMessage("Password must be at least 8 characters");
       return;
     }
 
@@ -60,7 +72,7 @@ export const Auth = () => {
       };
       
       // Add user metadata if name exists
-      if(sanitizedName !== '') {
+      if(sanitizedName && sanitizedName !== '') {
         signUpData.options = {
           data: {
             name: sanitizedName,
@@ -73,7 +85,7 @@ export const Auth = () => {
       const { data, error: signUpError } = await supabase.auth.signUp(signUpData);
 
       if(signUpError) {
-        setErrorMessage(signUpError.message);
+        setErrorMessage(securityService.escapeHtml(signUpError.message));
         setLoading(false);
         return;
       }
@@ -107,7 +119,7 @@ export const Auth = () => {
         if(signInError.message === "Invalid login credentials") {
           setErrorMessage("Invalid email or password. Please try again.");
         } else {
-          setErrorMessage(signInError.message);
+          setErrorMessage(securityService.escapeHtml(signInError.message));
         }
         setLoading(false);
         return;
@@ -187,13 +199,17 @@ export const Auth = () => {
                   </div>
                   <input
                     type="text"
-                    placeholder="ChooseYourUserName"
+                    placeholder="Choose your username"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     disabled={loading}
+                    maxLength="50"
                     className="appearance-none block w-full pl-10 pr-3 py-3 bg-gray-900 border border-gray-700 rounded-lg placeholder-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Letters, numbers, spaces, hyphens, and periods only
+                </p>
               </div>
             )}
 
@@ -214,11 +230,12 @@ export const Auth = () => {
                   </svg>
                 </div>
                 <input
-                  type="text"
+                  type="email"
                   placeholder="example@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
+                  maxLength="254"
                   className="appearance-none block w-full pl-10 pr-3 py-3 bg-gray-900 border border-gray-700 rounded-lg placeholder-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
@@ -245,13 +262,21 @@ export const Auth = () => {
                 </div>
                 <input
                   type="password"
-                  placeholder="Minimum of 6 Characters is Required"
+                  placeholder="Minimum 8 characters required"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
+                  maxLength="128"
                   className="appearance-none block w-full pl-10 pr-3 py-3 bg-gray-900 border border-gray-700 rounded-lg placeholder-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
+              {password && password.length > 0 && (
+                <p className={`text-xs mt-1 ${
+                  password.length < 8 ? 'text-red-500' : 'text-green-500'
+                }`}>
+                  {password.length < 8 ? 'Password is too short' : 'Password length is good'}
+                </p>
+              )}
             </div>
           </div>
 
@@ -277,7 +302,8 @@ export const Auth = () => {
               type="button"
               onClick={() => {
                 setIsSignUp(!isSignUp);
-                setErrorMessage(""); // Clear error when switching modes
+                setErrorMessage("");
+                setAttempts(0);
               }}
               disabled={loading}
               className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors duration-200 disabled:opacity-50"

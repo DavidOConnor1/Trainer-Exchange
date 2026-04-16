@@ -1,12 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Auth } from "../../../hooks/v1/signUser";
 import { useAuth } from "../../../hooks/v1/useAuth";
-import { useCollections } from "../../../hooks/v1/useCollectionStore"
+import { useCollections } from "../../../hooks/v1/useCollectionStore";
 import { supabase } from "../../../lib-supa/v1/api";
 import { Settings, Plus, Trash2, FolderPlus, X, Package, DollarSign } from "lucide-react";
 
 export default function UsersPage() {
+  const router = useRouter();
   const { user, loading: authLoading, signOut } = useAuth();
   const { 
     collections, 
@@ -25,6 +27,22 @@ export default function UsersPage() {
   const [newCollectionDescription, setNewCollectionDescription] = useState("");
   const [collectionsStats, setCollectionsStats] = useState({});
   const [loadingStats, setLoadingStats] = useState(false);
+  const [displayName, setDisplayName] = useState("");
+
+  // Get display name from user metadata
+  useEffect(() => {
+    if (user) {
+      // Get name from user metadata, fallback to email username
+      const nameFromMetadata = user.user_metadata?.name;
+      if (nameFromMetadata && nameFromMetadata !== '') {
+        setDisplayName(nameFromMetadata);
+      } else {
+        // Fallback: extract username from email (part before @)
+        const emailUsername = user.email?.split('@')[0] || 'User';
+        setDisplayName(emailUsername);
+      }
+    }
+  }, [user]);
 
   // Fetch card statistics for each collection
   const fetchCollectionStats = async () => {
@@ -63,14 +81,12 @@ export default function UsersPage() {
     }
   };
 
-  // Fetch stats whenever collections change
   useEffect(() => {
     if (collections.length > 0 && !collectionsLoading) {
       fetchCollectionStats();
     }
   }, [collections, collectionsLoading]);
 
-  // Calculate totals for the stats cards
   const calculateOverallTotals = () => {
     let totalValue = 0;
     let totalCards = 0;
@@ -85,36 +101,34 @@ export default function UsersPage() {
 
   const { totalValue: totalCollectionsValue, totalCards: totalCardsCount } = calculateOverallTotals();
 
-  // Handle create collection
   const handleCreateCollection = async () => {
     if (!newCollectionName.trim()) return;
     
-    try {
-      await createCollection(newCollectionName.trim(), newCollectionDescription.trim() || null);
+    try {//start try catch
+      const description = newCollectionDescription.trim() || null; //will take a description or can be null
+      await createCollection(newCollectionName.trim(), description);
       setShowCreateModal(false);
       setNewCollectionName("");
       setNewCollectionDescription("");
     } catch (err) {
       console.error("Error creating collection:", err);
       alert("Failed to create collection: " + err.message);
-    }
+    }//end try catch
   };
 
-  // Handle delete collection
   const handleDeleteCollection = async () => {
     if (!selectedCollection) return;
     
-    try {
+    try {//start try catch
       await deleteCollection(selectedCollection.id);
       setShowDeleteModal(false);
       setSelectedCollection(null);
     } catch (err) {
       console.error("Error deleting collection:", err);
       alert("Failed to delete collection: " + err.message);
-    }
+    }// end try catch
   };
 
-  // Show loading state while auth is initializing
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -132,13 +146,13 @@ export default function UsersPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header - Same as before */}
+      {/* Header */}
       <div className="fixed z-20 w-full max-w-lg -translate-x-1/2 top-4 left-1/2">
         <div className="w-full h-16 bg-white border border-gray-200 rounded-full dark:bg-gray-700 dark:border-gray-600 shadow-sm">
           <div className="grid h-full max-w-lg grid-cols-[70%_30%] mx-auto px-4">
             <div className="flex items-center">
               <h1 className="text-sm sm:text-base truncate font-medium text-gray-800 dark:text-white">
-                Welcome, {user.email}!
+                Welcome, {displayName}!
               </h1>
             </div>
             <div className="flex items-center justify-end gap-2">
@@ -160,22 +174,31 @@ export default function UsersPage() {
           <div className="py-1">
             <button
               onClick={() => {
+                router.push("/UserSettings");
+                setShowSettings(false);
+              }}
+              className="block w-full px-4 py-3 text-sm text-left text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              ⚙️ Settings
+            </button>
+            <button
+              onClick={() => {
                 signOut();
                 setShowSettings(false);
               }}
-              className="block w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+              className="block w-full px-4 py-3 text-sm text-left text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-700 border-t border-gray-200 dark:border-gray-700"
             >
-              Sign Out
+              🚪 Sign Out
             </button>
           </div>
         </div>
       )}
 
+      
       {/* Main Content */}
       <div className="pt-24 pb-8 px-4 max-w-lg mx-auto">
         {/* Stats Cards */}
         <div className="grid grid-cols-2 gap-4 mb-6">
-          {/* Total Collections Card */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2 mb-1">
               <Package className="w-4 h-4 text-blue-500" />
@@ -191,7 +214,6 @@ export default function UsersPage() {
             </p>
           </div>
 
-          {/* Total Value Card */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2 mb-1">
               <DollarSign className="w-4 h-4 text-green-500" />
@@ -239,7 +261,6 @@ export default function UsersPage() {
                 </button>
               </div>
             ) : collections.length === 0 ? (
-              // No collections - Show centered create button
               <div className="flex flex-col items-center justify-center py-12">
                 <div className="text-center mb-6">
                   <FolderPlus className="w-16 h-16 mx-auto text-gray-400 dark:text-gray-500 mb-3" />
@@ -259,7 +280,6 @@ export default function UsersPage() {
                 </button>
               </div>
             ) : (
-              // Show list of collections
               <div className="space-y-3">
                 {collections.map((collection) => {
                   const stats = collectionsStats[collection.id] || { card_count: 0, total_value: 0 };
@@ -374,11 +394,11 @@ export default function UsersPage() {
               Delete Collection?
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Are you sure you want to delete {selectedCollection.name}?
+              Are you sure you want to delete "{selectedCollection.name}"?
             </p>
             {collectionsStats[selectedCollection.id]?.card_count > 0 && (
               <p className="text-sm text-red-600 dark:text-red-400 mb-6 bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">
-                This collection contains {collectionsStats[selectedCollection.id].card_count} {collectionsStats[selectedCollection.id].card_count === 1 ? 'card' : 'cards'}. They will also be deleted.
+                ⚠️ This collection contains {collectionsStats[selectedCollection.id].card_count} {collectionsStats[selectedCollection.id].card_count === 1 ? 'card' : 'cards'}. They will also be deleted.
               </p>
             )}
             <div className="flex gap-2">

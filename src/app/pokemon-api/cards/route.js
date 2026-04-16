@@ -1,6 +1,6 @@
 // src/app/api/cards/route.js - USING OFFICIAL SDK
 import { NextResponse } from 'next/server';
-import { Card } from 'pokemontcg-sdk';
+import { Card } from 't'
 
 // Simple cache
 const cache = new Map();

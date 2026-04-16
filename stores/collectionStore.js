@@ -1,9 +1,9 @@
-
 "use client"; // runs on client side server
 
 import { create } from 'zustand'; //will allow the page to be transported as a singleton instance
 import { persist } from 'zustand/middleware';
 import { supabase } from "../lib-supa/v1/api";
+import securityService from '../lib/security';
 
 const useCollectionStore = create(
   // Add persistence to localStorage 
@@ -65,18 +65,39 @@ const useCollectionStore = create(
         }
       },
       
-      // Create a new collection
+      // Create a new collection with sanitization
       createCollection: async (userId, name, description = "") => {
         if (!userId) throw new Error("User not authenticated");
-        if (!name.trim()) throw new Error("Collection name is required");
+        
+        // Sanitize inputs
+        const sanitizedName = securityService.sanitizeText(name, 100);
+        const sanitizedDescription = description ? securityService.sanitizeDescription(description, 500) : null;
+        
+        // Validate after sanitization
+        if (!sanitizedName || sanitizedName.trim() === "") {
+          throw new Error("Collection name is required");
+        }
+        
+        // Check for suspicious patterns
+        if (securityService.containsSuspiciousPatterns(sanitizedName)) {
+          throw new Error("Collection name contains invalid characters");
+        }
+        
+        if (sanitizedDescription && securityService.containsSuspiciousPatterns(sanitizedDescription)) {
+          throw new Error("Description contains invalid characters");
+        }
+        
+        // Make database safe (additional layer)
+        const dbSafeName = securityService.makeDBSafe(sanitizedName);
+        const dbSafeDescription = sanitizedDescription ? securityService.makeDBSafe(sanitizedDescription) : null;
         
         // Optimistically update UI
         const tempId = `temp-${Date.now()}`;
         const optimisticCollection = {
           id: tempId,
           user_id: userId,
-          name: name.trim(),
-          description: description.trim() || null,
+          name: dbSafeName,
+          description: dbSafeDescription,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           isTemp: true // Mark as temporary
@@ -92,8 +113,8 @@ const useCollectionStore = create(
             .insert([
               {
                 user_id: userId,
-                name: name.trim(),
-                description: description.trim() || null,
+                name: dbSafeName,
+                description: dbSafeDescription,
               },
             ])
             .select()
@@ -119,9 +140,31 @@ const useCollectionStore = create(
         }
       },
       
-      // Update a collection
+      // Update a collection with sanitization
       updateCollection: async (collectionId, updates, userId) => {
         if (!userId) throw new Error("User not authenticated");
+        
+        // Sanitize updates if they contain name or description
+        const sanitizedUpdates = { ...updates };
+        
+        if (updates.name !== undefined) {
+          const sanitizedName = securityService.sanitizeText(updates.name, 100);
+          if (!sanitizedName || sanitizedName.trim() === "") {
+            throw new Error("Collection name cannot be empty");
+          }
+          if (securityService.containsSuspiciousPatterns(sanitizedName)) {
+            throw new Error("Collection name contains invalid characters");
+          }
+          sanitizedUpdates.name = securityService.makeDBSafe(sanitizedName);
+        }
+        
+        if (updates.description !== undefined) {
+          const sanitizedDescription = updates.description ? securityService.sanitizeDescription(updates.description, 500) : null;
+          if (sanitizedDescription && securityService.containsSuspiciousPatterns(sanitizedDescription)) {
+            throw new Error("Description contains invalid characters");
+          }
+          sanitizedUpdates.description = sanitizedDescription ? securityService.makeDBSafe(sanitizedDescription) : null;
+        }
         
         // Store original state for rollback
         const originalCollections = get().collections;
@@ -129,7 +172,7 @@ const useCollectionStore = create(
         // Optimistically update UI
         set((state) => ({
           collections: state.collections.map((c) =>
-            c.id === collectionId ? { ...c, ...updates, isUpdating: true } : c
+            c.id === collectionId ? { ...c, ...sanitizedUpdates, isUpdating: true } : c
           )
         }));
         
@@ -137,7 +180,7 @@ const useCollectionStore = create(
           const { data, error } = await supabase
             .from("collections")
             .update({
-              ...updates,
+              ...sanitizedUpdates,
               updated_at: new Date().toISOString(),
             })
             .eq("id", collectionId)
