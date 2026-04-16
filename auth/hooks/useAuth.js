@@ -1,5 +1,5 @@
 "use client";
-import { supabase } from "../../lib-supa/v1/api";
+import { supabase } from "../../lib/api";
 import { useState, useEffect, useRef } from "react";
 
 export function useAuth() {

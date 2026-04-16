@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import api from "../../lib-supa/v1/api";
+import api from "../../lib/api";
 
 export function useUsers(){ //start use users function
     const [users, setUsers] = useState([]);

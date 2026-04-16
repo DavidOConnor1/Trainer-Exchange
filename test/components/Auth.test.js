@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Auth } from '../../hooks/v1/signUser';
+import { Auth } from '../../auth/hooks/signUser';
 
 // Mock the security service BEFORE importing - define mocks inside
 jest.mock('../../lib/security', () => ({
@@ -164,7 +164,7 @@ describe('Auth Component - Validation Tests', () => {
 });
 
     test('accepts valid email formats', async () => {
-      const { supabase } = require('../../lib-supa/v1/api');
+      const { supabase } = require('../../lib/api');
       isValidEmail.mockReturnValue(true);
       supabase.auth.signInWithPassword.mockResolvedValue({
         data: { user: { email: 'valid@email.com', id: '123' } },
@@ -219,7 +219,7 @@ describe('Auth Component - Validation Tests', () => {
     });
 
     test('accepts password with exactly 8 characters', async () => {
-      const { supabase } = require('../../lib-supa/v1/api');
+      const { supabase } = require('../../lib/api');
       supabase.auth.signInWithPassword.mockResolvedValue({
         data: { user: { email: 'test@email.com', id: '123' } },
         error: null
@@ -242,7 +242,7 @@ describe('Auth Component - Validation Tests', () => {
     });
 
     test('accepts password with more than 8 characters', async () => {
-      const { supabase } = require('../../lib-supa/v1/api');
+      const { supabase } = require('../../lib/api');
       supabase.auth.signInWithPassword.mockResolvedValue({
         data: { user: { email: 'test@email.com', id: '123' } },
         error: null
@@ -273,7 +273,7 @@ describe('Auth Component - Validation Tests', () => {
     });
 
     test('allows empty username in sign up', async () => {
-      const { supabase } = require('../../lib-supa/v1/api');
+      const { supabase } = require('../../lib/api');
       supabase.auth.signUp.mockResolvedValue({
         data: { user: { email: 'test@email.com', id: '123' } },
         error: null
@@ -294,7 +294,7 @@ describe('Auth Component - Validation Tests', () => {
     });
 
     test('includes username in signUp data when provided', async () => {
-  const { supabase } = require('../../lib-supa/v1/api');
+  const { supabase } = require('../../lib/api');
   supabase.auth.signUp.mockResolvedValue({
     data: { user: { email: 'test@email.com', id: '123' } },
     error: null
@@ -331,7 +331,7 @@ describe('Auth Component - Validation Tests', () => {
 
   describe('Rate Limiting', () => {
     test('rate limiter is called on submit', async () => {
-      const { supabase } = require('../../lib-supa/v1/api');
+      const { supabase } = require('../../lib/api');
       supabase.auth.signInWithPassword.mockResolvedValue({
         data: { user: { email: 'test@email.com', id: '123' } },
         error: null
@@ -377,7 +377,7 @@ describe('Auth Component - Validation Tests', () => {
 
 describe('Sanitization', () => {
   test('inputs are sanitized before processing', async () => {
-    const { supabase } = require('../../lib-supa/v1/api');
+    const { supabase } = require('../../lib/api');
     
     // Mock successful sign in
     supabase.auth.signInWithPassword.mockResolvedValue({
@@ -412,7 +412,7 @@ describe('Sanitization', () => {
 
   describe('Form Reset', () => {
     test('clears form after successful sign in', async () => {
-      const { supabase } = require('../../lib-supa/v1/api');
+      const { supabase } = require('../../lib/api');
       
       supabase.auth.signInWithPassword.mockResolvedValue({
         data: { user: { email: 'test@email.com', id: '123' } },
@@ -437,7 +437,7 @@ describe('Sanitization', () => {
     });
 
     test('clears form after successful sign up', async () => {
-      const { supabase } = require('../../lib-supa/v1/api');
+      const { supabase } = require('../../lib/api');
       
       supabase.auth.signUp.mockResolvedValue({
         data: { user: { email: 'test@email.com', id: '123' } },
@@ -469,7 +469,7 @@ describe('Sanitization', () => {
 
   describe('Error Handling', () => {
     test('handles sign in error from Supabase', async () => {
-      const { supabase } = require('../../lib-supa/v1/api');
+      const { supabase } = require('../../lib/api');
       
       supabase.auth.signInWithPassword.mockResolvedValue({
         data: null,
@@ -493,7 +493,7 @@ describe('Sanitization', () => {
     });
 
     test('handles sign up error from Supabase', async () => {
-      const { supabase } = require('../../lib-supa/v1/api');
+      const { supabase } = require('../../lib/api');
       
       supabase.auth.signUp.mockResolvedValue({
         data: null,

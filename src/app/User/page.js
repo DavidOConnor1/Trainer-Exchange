@@ -1,10 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Auth } from "../../../hooks/v1/signUser";
-import { useAuth } from "../../../hooks/v1/useAuth";
-import { useCollections } from "../../../hooks/v1/useCollectionStore";
-import { supabase } from "../../../lib-supa/v1/api";
+import { Auth } from "../../../auth/hooks/signUser";
+import { useAuth } from "../../../auth/hooks/useAuth";
+import { useCollections } from "../../../collections/hooks/useCollectionStore";
+import { supabase } from "../../../lib/api";
 import { Settings, Plus, Trash2, FolderPlus, X, Package, DollarSign } from "lucide-react";
 
 export default function UsersPage() {

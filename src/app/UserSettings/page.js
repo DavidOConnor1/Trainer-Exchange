@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../../lib-supa/v1/api';
-import { useAuth } from '../../../hooks/v1/useAuth';
+import { supabase } from '../../../lib/api';
+import { useAuth } from '../../../auth/hooks/useAuth';
 import securityService from '../../../lib/security';
 import { ArrowLeft, Save, RefreshCw, AlertCircle, CheckCircle, LogOut, User, Mail, Lock, Shield } from 'lucide-react';
 

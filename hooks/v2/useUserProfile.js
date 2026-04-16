@@ -1,7 +1,7 @@
 "use client" //setups for client side server
 
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib-supa/v1/api";
+import { supabase } from "../../lib/api";
 export const useUserProfile = () => {
   
   const [currentUser, setCurrentUser] = useState(null);

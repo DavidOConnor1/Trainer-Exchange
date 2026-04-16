@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "../../lib-supa/v1/api";
+import { supabase } from "../../lib/api";
 import { sanitizeInput, generateSecureToken, timingPrevention } from "../../lib-supa/v1/security";
 import { authRateLimiter01 } from "../../lib-supa/v1.1/loginRateLimiter";
 

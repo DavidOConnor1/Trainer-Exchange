@@ -1,6 +1,6 @@
 import {useState, useEffect} from 'react';
-import { supabase } from '../../lib-supa/v1/api.js';
-import { useAuth } from './useAuth';
+import { supabase } from '../../lib/api.js';
+import { useAuth } from '../../auth/hooks/useAuth.js';
 
 export function useCards(collectionId){
     const {user} = useAuth();

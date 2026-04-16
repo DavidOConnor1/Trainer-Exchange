@@ -2,7 +2,7 @@
 "use client";
 
 import useCollectionStore from '../../stores/collectionStore';
-import { useAuth } from './useAuth';
+import { useAuth } from '../../auth/hooks/useAuth';
 import { useEffect, useRef } from 'react';
 
 export function useCollections() {

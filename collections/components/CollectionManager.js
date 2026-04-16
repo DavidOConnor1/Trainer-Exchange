@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useCollections } from "../../hooks/v1/useCollections";
 import { useCards } from "../../hooks/v1/useCards";
-import { useAuth } from "../../hooks/v1/useAuth";
+import { useAuth } from "../../auth/hooks/useAuth";
 import Image from "next/image";
 
 export default function CollectionManager() {

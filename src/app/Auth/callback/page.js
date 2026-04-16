@@ -3,7 +3,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation"; 
-import { supabase } from "../../../../lib-supa/v1/api";
+import { supabase } from "../../../../lib/api";
 
 
 export default function AuthCallBack() {

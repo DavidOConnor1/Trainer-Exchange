@@ -2,7 +2,7 @@
 
 import { create } from 'zustand'; //will allow the page to be transported as a singleton instance
 import { persist } from 'zustand/middleware';
-import { supabase } from "../lib-supa/v1/api";
+import { supabase } from "../lib/api";
 import securityService from '../lib/security';
 
 const useCollectionStore = create(
