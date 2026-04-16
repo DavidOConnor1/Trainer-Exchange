@@ -1,7 +1,7 @@
 // hooks/useAuthLogic.js
 import { useState } from 'react';
-import { supabase } from '../lib-supa/v1/api';
-import securityService from '../lib/security';
+import { supabase } from '../../lib/api';
+import securityService from '../../lib/security';
 
 export const useAuthLogic = () => {
   const [isSignUp, setIsSignUp] = useState(false);
