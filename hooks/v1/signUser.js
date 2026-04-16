@@ -124,7 +124,7 @@ export const Auth = () => {
         return;
       }
       
-      const success = !signInError && data?.user;
+      const success = !!data?.user;
       
       if(success) {
         authRateLimiter01.clear(sanitizedEmail); // Use sanitized email
