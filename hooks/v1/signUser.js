@@ -30,21 +30,12 @@ export const Auth = () => {
     // Clear previous error
     setErrorMessage("");
 
-    // Rate limit check (browser side)
-    const ratelimit = authRateLimiter01.check(email || null, 5, 15*60*1000);
-
-    if(ratelimit.limited) {
-      const waitMinutes = Math.ceil(ratelimit.remainingTime/60000);
-      setErrorMessage(`Too many attempts. Please wait ${waitMinutes} minutes.`);
-      return;
-    }
-    
     // Use the existing security service for sanitization
     const sanitizedName = securityService.sanitizeName(name, 50);
     const sanitizedEmail = securityService.sanitizeEmail(email, 254);
     const sanitizedPassword = securityService.sanitizePassword(password, 128);
 
-    // Validation
+    // Validate using sanitized values
     if(!sanitizedEmail || !sanitizedPassword) {
       setErrorMessage("Email and password are required");
       return;
@@ -57,9 +48,17 @@ export const Auth = () => {
     }
     
     // Password validation using security service
-    const passwordStrength = securityService.checkPasswordStrength(sanitizedPassword);
     if(sanitizedPassword.length < 8) {
       setErrorMessage("Password must be at least 8 characters");
+      return;
+    }
+
+    // Rate limit check AFTER validation (using sanitized email)
+    const ratelimit = authRateLimiter01.check(sanitizedEmail || null, 5, 15*60*1000);
+
+    if(ratelimit.limited) {
+      const waitMinutes = Math.ceil(ratelimit.remainingTime/60000);
+      setErrorMessage(`Too many attempts. Please wait ${waitMinutes} minutes.`);
       return;
     }
 
@@ -93,7 +92,7 @@ export const Auth = () => {
       const success = !signUpError && data?.user;
       
       if(success) {
-        authRateLimiter01.clear(email);
+        authRateLimiter01.clear(sanitizedEmail); // Use sanitized email
       }
       
       console.log("Sign up successful! Check your email to confirm.", data);
@@ -128,7 +127,7 @@ export const Auth = () => {
       const success = !signInError && data?.user;
       
       if(success) {
-        authRateLimiter01.clear(email);
+        authRateLimiter01.clear(sanitizedEmail); // Use sanitized email
         setName("");
         setEmail("");
         setPassword("");
@@ -199,7 +198,7 @@ export const Auth = () => {
                   </div>
                   <input
                     type="text"
-                    placeholder="Choose your username"
+                    placeholder="ChooseYourUserName"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     disabled={loading}
@@ -230,7 +229,7 @@ export const Auth = () => {
                   </svg>
                 </div>
                 <input
-                  type="email"
+                  type="text"
                   placeholder="example@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -262,7 +261,7 @@ export const Auth = () => {
                 </div>
                 <input
                   type="password"
-                  placeholder="Minimum 8 characters required"
+                  placeholder="Minimum of 8 Characters is Required"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
