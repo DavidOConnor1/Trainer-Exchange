@@ -1,130 +1,34 @@
-import { useState } from "react";
-import { supabase } from "../../lib/api";
-import { sanitizeInput, generateSecureToken, timingPrevention } from "../../lib-supa/v1/security";
-import { authRateLimiter01 } from "../../lib-supa/v1.1/loginRateLimiter";
+"use client";
+
+import { useAuthLogic } from '../useAuthLogic';
+import { validateEmail, validatePassword, validateName, getPasswordStrengthIndicator } from '../../components/FormValidation';
 
 export const Auth = () => {
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [attempts, setAttempts] = useState(0);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+  const {
+    isSignUp,
+    name,
+    email,
+    password,
+    loading,
+    errorMessage,
+    setName,
+    setEmail,
+    setPassword,
+    handleSubmit,
+    toggleMode,
+  } = useAuthLogic();
 
-  // Generate secure token for new users
-  const generateSecureToken = () => {
-    return crypto.randomUUID ? crypto.randomUUID() : 
-      Math.random().toString(36).substring(2) + Date.now().toString(36);
-  };
+  // Real-time validation
+  const emailError = validateEmail(email);
+  const passwordError = validatePassword(password);
+  const nameError = isSignUp ? validateName(name, false) : null;
+  const passwordStrength = getPasswordStrengthIndicator(password);
 
-  // Timing prevention to avoid brute force attacks
-  const timingPrevention = async (attemptCount) => {
-    const delay = Math.min(100 * Math.pow(2, attemptCount), 3000);
-    await new Promise(resolve => setTimeout(resolve, delay));
-  };
-
-  const handleSubmit = async(e) => {
-    e.preventDefault();
-    
-    // Clear previous error
-    setErrorMessage("");
-
-    //rate limit check(browser side)
-    const ratelimit = authRateLimiter01.check(email ||null , 5, 15*60*1000);
-
-    // Validate using sanitized values
-    if(!sanitizedEmail || !sanitizedPassword) {
-      setErrorMessage("Email and password are required");
-      return;
-    }
-    
-    // Email regex validation using security service
-    if(!securityService.isValidEmail(sanitizedEmail)) {
-      setErrorMessage("Please enter a valid email address");
-      return;
-    }
-    
-    // Password validation using security service
-    if(sanitizedPassword.length < 8) {
-      setErrorMessage("Password must be at least 8 characters");
-      return;
-    }
-
-    // Rate limit check AFTER validation (using sanitized email)
-    const ratelimit = authRateLimiter01.check(sanitizedEmail || null, 5, 15*60*1000);
-
-    if(ratelimit.limited) {
-      const waitMinutes = Math.ceil(ratelimit.remainingTime/60000);
-      setErrorMessage(`Too many attempts. Please wait ${waitMinutes} minutes.`);
-      return;
-    }
-
-    setLoading(true);
-
-    if(isSignUp) {
-      const signUpData = {
-        email: sanitizedEmail,
-        password: sanitizedPassword,
-      };
-      
-      // Add user metadata if name exists
-      if(sanitizedName && sanitizedName !== '') {
-        signUpData.options = {
-          data: {
-            name: sanitizedName,
-            security_token: generateSecureToken(),
-            created_at: new Date().toISOString()
-          }
-        };
-      }
-      
-      const { data, error: signUpError } = await supabase.auth.signUp(signUpData);
-
-      if(signUpError) {
-        setErrorMessage(securityService.escapeHtml(signUpError.message));
-        setLoading(false);
-        return;
-      }
-      
-      const success = !!data?.user;
-      
-      if(success) {
-        authRateLimiter01.clear(sanitizedEmail); // Use sanitized email
-      }
-      
-      console.log("Sign up successful! Check your email to confirm.", data);
-      
-      // Clear form on success
-      setName("");
-      setEmail("");
-      setPassword("");
-      setErrorMessage("");
-      
-    } else {
-      await timingPrevention(attempts);
-      
-      setAttempts(prev => prev + 1);
-
-        const { data, error: signInError } = await supabase.auth.signInWithPassword({
-            email: sanitizedEmail,
-            password: sanitizedPassword
-        });
-        
-        //throws error for signin
-        if(signInError) {
-            console.error("Sign in error: ", signInError.message);
-            return;
-        }//end if
-
-        if(success){
-          authRateLimiter01.clear(email);
-        }//end if 
-        
-        console.log("Sign in successful!", data);
-    }
-    
-    setLoading(false);
+  const isFormValid = () => {
+    if (!email || !password) return false;
+    if (emailError || passwordError) return false;
+    if (isSignUp && nameError) return false;
+    return true;
   };
 
   return (
@@ -184,14 +88,19 @@ export const Auth = () => {
                   </div>
                   <input
                     type="text"
-                    placeholder="ChooseYourUserName"
+                    placeholder="Choose your username"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     disabled={loading}
                     maxLength="50"
-                    className="appearance-none block w-full pl-10 pr-3 py-3 bg-gray-900 border border-gray-700 rounded-lg placeholder-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`appearance-none block w-full pl-10 pr-3 py-3 bg-gray-900 border rounded-lg placeholder-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                      nameError ? 'border-red-500' : 'border-gray-700'
+                    }`}
                   />
                 </div>
+                {nameError && (
+                  <p className="text-xs text-red-500 mt-1">{nameError}</p>
+                )}
                 <p className="text-xs text-gray-500 mt-1">
                   Letters, numbers, spaces, hyphens, and periods only
                 </p>
@@ -215,15 +124,20 @@ export const Auth = () => {
                   </svg>
                 </div>
                 <input
-                  type="text"
+                  type="email"
                   placeholder="example@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                   maxLength="254"
-                  className="appearance-none block w-full pl-10 pr-3 py-3 bg-gray-900 border border-gray-700 rounded-lg placeholder-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`appearance-none block w-full pl-10 pr-3 py-3 bg-gray-900 border rounded-lg placeholder-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    emailError ? 'border-red-500' : 'border-gray-700'
+                  }`}
                 />
               </div>
+              {emailError && (
+                <p className="text-xs text-red-500 mt-1">{emailError}</p>
+              )}
             </div>
 
             <div>
@@ -247,20 +161,28 @@ export const Auth = () => {
                 </div>
                 <input
                   type="password"
-                  placeholder="Minimum of 8 Characters is Required"
+                  placeholder="Minimum of 8 characters required"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
                   maxLength="128"
-                  className="appearance-none block w-full pl-10 pr-3 py-3 bg-gray-900 border border-gray-700 rounded-lg placeholder-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`appearance-none block w-full pl-10 pr-3 py-3 bg-gray-900 border rounded-lg placeholder-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    passwordError ? 'border-red-500' : 'border-gray-700'
+                  }`}
                 />
               </div>
-              {password && password.length > 0 && (
-                <p className={`text-xs mt-1 ${
-                  password.length < 8 ? 'text-red-500' : 'text-green-500'
-                }`}>
-                  {password.length < 8 ? 'Password is too short' : 'Password length is good'}
-                </p>
+              {passwordError && (
+                <p className="text-xs text-red-500 mt-1">{passwordError}</p>
+              )}
+              {password && !passwordError && passwordStrength && (
+                <div className="mt-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">Strength:</span>
+                    <span className={`text-xs font-medium text-${passwordStrength.color}-500`}>
+                      {passwordStrength.text}
+                    </span>
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -268,7 +190,7 @@ export const Auth = () => {
           <div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !isFormValid()}
               className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-gray-950 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
@@ -285,11 +207,7 @@ export const Auth = () => {
           <div className="text-center">
             <button
               type="button"
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setErrorMessage("");
-                setAttempts(0);
-              }}
+              onClick={toggleMode}
               disabled={loading}
               className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors duration-200 disabled:opacity-50"
             >

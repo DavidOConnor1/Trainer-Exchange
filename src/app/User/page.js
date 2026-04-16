@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Auth } from "../../../auth/hooks/signUser";
+import { Auth } from "../../../auth/hooks/v1/signUser";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { useCollections } from "../../../collections/hooks/useCollectionStore";
 import { supabase } from "../../../lib/api";

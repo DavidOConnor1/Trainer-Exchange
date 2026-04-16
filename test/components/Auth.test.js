@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Auth } from '../../auth/hooks/signUser';
+import { Auth } from '../../auth/hooks/v1/signUser';
 
 // Mock the security service BEFORE importing - define mocks inside
 jest.mock('../../lib/security', () => ({
