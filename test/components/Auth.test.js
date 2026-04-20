@@ -53,7 +53,7 @@ import {
 } from '../../lib/security';
 
 // Mock the other dependencies
-jest.mock('../../lib-supa/v1/api', () => ({
+jest.mock('../../lib/api', () => ({
   supabase: {
     auth: {
       signUp: jest.fn(),
@@ -62,16 +62,9 @@ jest.mock('../../lib-supa/v1/api', () => ({
   }
 }));
 
-// Mock the rate limiter with functions defined inside
-jest.mock('../../lib-supa/v1.1/loginRateLimiter', () => ({
-  authRateLimiter01: {
-    check: jest.fn(() => ({ limited: false, remainingTime: 0 })),
-    clear: jest.fn()
-  }
-}));
 
-// Import the rate limiter to get reference to the mock functions
-import { authRateLimiter01 } from '../../lib-supa/v1.1/loginRateLimiter';
+
+
 
 // Mock console methods
 const originalConsole = { ...console };
@@ -80,9 +73,6 @@ beforeEach(() => {
   console.log = jest.fn();
   console.error = jest.fn();
   jest.clearAllMocks();
-  
-  // CRITICAL: Reset rate limiter to NOT limited for each test
-  authRateLimiter01.check.mockReturnValue({ limited: false, remainingTime: 0 });
   
   // Reset mock implementations
   sanitizeName.mockImplementation((input) => input?.trim() || '');

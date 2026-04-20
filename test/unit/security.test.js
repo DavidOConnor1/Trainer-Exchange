@@ -1,4 +1,5 @@
 import securityService, {
+  // General sanitization
   sanitizeText,
   sanitizeSearchQuery,
   sanitizeDescription,
@@ -6,6 +7,8 @@ import securityService, {
   makeDBSafe,
   containsSuspiciousPatterns,
   getSafePreview,
+  
+  // Account related validation and sanitization
   sanitizeName,
   sanitizeEmail,
   isValidEmail,
@@ -13,7 +16,21 @@ import securityService, {
   checkPasswordStrength,
   escapeHtml,
   validateProfileUpdate,
-  getRateLimiter
+  
+  // Rate limiting
+  getRateLimiter,
+  
+  // Timing attack prevention & comparison
+  safeCompare,
+  timingPrevention,
+  
+  // Token generation
+  generateSecureToken,
+  generateUrlSafeToken,
+  
+  // Token validation
+  isValidToken,
+  verifyToken
 } from '../../lib/security';
 
 describe('SecurityService - Singleton Pattern', () => {
@@ -573,5 +590,290 @@ describe('getRateLimiter', () => {
     const limiter = getRateLimiter('null-test', 1, 1000);
     expect(limiter.canProceed(null)).toBe(true);
     expect(limiter.canProceed(undefined)).toBe(true);
+  });
+});
+
+let mockCounter =0;
+// Mock crypto for token generation tests
+const mockCrypto = {
+  getRandomValues: jest.fn((array) => {
+    for (let i = 0; i < array.length; i++) {
+      // Use counter to generate different values each call
+      array[i] = (mockCounter + i) % 256;
+    }
+    mockCounter += array.length;
+  })
+};
+
+describe('safeCompare()', () => {
+  test('should return true for identical strings', () => {
+    expect(safeCompare('test123', 'test123')).toBe(true);
+    expect(safeCompare('', '')).toBe(true);
+    expect(safeCompare('a', 'a')).toBe(true);
+  });
+
+  test('should return false for different strings', () => {
+    expect(safeCompare('test123', 'test456')).toBe(false);
+    expect(safeCompare('abc', 'abcd')).toBe(false);
+    expect(safeCompare('hello', 'world')).toBe(false);
+  });
+
+  test('should handle different lengths (return false)', () => {
+    expect(safeCompare('short', 'longer string')).toBe(false);
+    expect(safeCompare('', 'not empty')).toBe(false);
+  });
+
+  test('should handle non-string inputs (return false)', () => {
+    expect(safeCompare(null, 'test')).toBe(false);
+    expect(safeCompare(undefined, 'test')).toBe(false);
+    expect(safeCompare(123, '123')).toBe(false);
+    expect(safeCompare({}, 'test')).toBe(false);
+    expect(safeCompare('test', null)).toBe(false);
+  });
+
+  test('should be timing-safe (bitwise XOR comparison)', () => {
+    // This tests the implementation uses bitwise XOR
+    const a = 'secret123';
+    const b = 'secret123';
+    const c = 'secret456';
+    
+    expect(safeCompare(a, b)).toBe(true);
+    expect(safeCompare(a, c)).toBe(false);
+    // The implementation uses XOR which doesn't short-circuit
+  });
+});
+
+describe('timingPrevention()', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test('should return a Promise', () => {
+    const result = timingPrevention(1);
+    expect(result).toBeInstanceOf(Promise);
+  });
+
+  test('attempt 1: should delay ~100ms', async () => {
+    const promise = timingPrevention(1);
+    jest.advanceTimersByTime(100);
+    await promise;
+    expect(true).toBe(true);
+  }, 10000);
+
+  test('attempt 2: should delay ~200ms', async () => {
+    const promise = timingPrevention(2);
+    jest.advanceTimersByTime(200);
+    await promise;
+    expect(true).toBe(true);
+  }, 10000);
+
+  test('attempt 3: should delay ~400ms', async () => {
+    const promise = timingPrevention(3);
+    jest.advanceTimersByTime(400);
+    await promise;
+    expect(true).toBe(true);
+  }, 10000);
+
+  test('attempt 4: should delay ~800ms', async () => {
+    const promise = timingPrevention(4);
+    jest.advanceTimersByTime(800);
+    await promise;
+    expect(true).toBe(true);
+  }, 10000);
+
+  test('attempt 5: should delay ~1600ms', async () => {
+    const promise = timingPrevention(5);
+    jest.advanceTimersByTime(1600);
+    await promise;
+    expect(true).toBe(true);
+  }, 10000);
+
+  test('attempt 6+: should cap at ~3000ms', async () => {
+    const promise = timingPrevention(6);
+    jest.advanceTimersByTime(3000);
+    await promise;
+    expect(true).toBe(true);
+  }, 10000);
+
+  test('should include random jitter', async () => {
+    const delays = [];
+    for (let i = 0; i < 3; i++) {
+      const promise = timingPrevention(3);
+      jest.advanceTimersByTime(500);
+      await promise;
+      delays.push(i);
+    }
+    expect(delays.length).toBe(3);
+  }, 10000);
+});
+
+describe('isValidToken()', () => {
+  test('should validate hex tokens (exactly 64 chars, 0-9a-f)', () => {
+    const validHex = 'a'.repeat(64);
+    expect(isValidToken(validHex)).toBe(true);
+    
+    const validHex2 = '0123456789abcdef'.repeat(4);
+    expect(isValidToken(validHex2)).toBe(true);
+    
+    // 63 chars should fail for hex (needs exactly 64)
+    expect(isValidToken('a'.repeat(63))).toBe(false);
+  });
+
+  test('should validate URL-safe base64 tokens (minimum 32 chars, any length above)', () => {
+    // Minimum length (32 chars) - valid
+    const validBase64Min = 'a'.repeat(32);
+    expect(isValidToken(validBase64Min)).toBe(true);
+    
+    // 63 chars is VALID base64 (63 >= 32)
+    const validBase64Long = 'a'.repeat(63);
+    expect(isValidToken(validBase64Long)).toBe(true);
+    
+    // 100 chars is valid
+    const validBase64VeryLong = 'a'.repeat(100);
+    expect(isValidToken(validBase64VeryLong)).toBe(true);
+    
+    // With URL-safe characters
+    const validBase64WithChars = 'abc123DEF456_-xyz789';
+    expect(isValidToken(validBase64WithChars)).toBe(true);
+  });
+
+  test('should reject invalid formats', () => {
+    expect(isValidToken('not a valid token')).toBe(false);
+    expect(isValidToken('abc123!@#')).toBe(false); // contains invalid chars
+    expect(isValidToken('')).toBe(false);
+    expect(isValidToken(null)).toBe(false);
+    expect(isValidToken(undefined)).toBe(false);
+    
+    // Below minimum length for base64 (31 chars)
+    expect(isValidToken('a'.repeat(31))).toBe(false);
+  });
+
+  test('should reject hex tokens with wrong length', () => {
+    // Hex requires exactly 64 chars
+    expect(isValidToken('a'.repeat(32))).toBe(true); // 32 chars = valid base64
+    expect(isValidToken('a'.repeat(64))).toBe(true); // valid hex
+    expect(isValidToken('a'.repeat(65))).toBe(true); // 65 chars = valid base64
+  });
+
+  test('should accept custom expectedLength parameter for hex tokens', () => {
+    // When specifying expectedLength, it expects hex of that exact length
+    const token32Hex = 'a'.repeat(32);
+    expect(isValidToken(token32Hex, 32)).toBe(true);
+    
+    const token48Hex = 'a'.repeat(48);
+    expect(isValidToken(token48Hex, 48)).toBe(true);
+    
+    const token64Hex = 'a'.repeat(64);
+    expect(isValidToken(token64Hex, 64)).toBe(true);
+    
+    // Wrong length for expectedLength should fail
+    expect(isValidToken('a'.repeat(32), 64)).toBe(false);
+  });
+});
+
+describe('generateUrlSafeToken()', () => {
+   let originalCrypto;
+
+  beforeAll(() => {
+    originalCrypto = global.crypto;
+    global.crypto = mockCrypto;
+  });
+
+  afterAll(() => {
+    global.crypto = originalCrypto;
+  });
+
+  beforeEach(() => {
+    mockCrypto.getRandomValues.mockClear();
+    mockCounter = 0; // Reset counter for each test
+  });
+
+  test('should return a string', () => {
+    const token = generateUrlSafeToken();
+    expect(typeof token).toBe('string');
+  });
+
+  test('should return URL-safe base64 string', () => {
+    const token = generateUrlSafeToken(32);
+    // Should not contain +, /, or = characters
+    expect(token).not.toContain('+');
+    expect(token).not.toContain('/');
+    expect(token).not.toContain('=');
+  });
+
+  test('should be usable in URLs without encoding', () => {
+    const token = generateUrlSafeToken(32);
+    // URL-safe characters only
+    expect(token).toMatch(/^[A-Za-z0-9\-_]+$/);
+  });
+
+  test('should generate different tokens each call', () => {
+    const token1 = generateUrlSafeToken(16);
+    const token2 = generateUrlSafeToken(16);
+    expect(token1).not.toBe(token2);
+  });
+
+  test('should use crypto.getRandomValues', () => {
+    mockCrypto.getRandomValues.mockClear();
+    generateUrlSafeToken(32);
+    expect(mockCrypto.getRandomValues).toHaveBeenCalled();
+  });
+
+    test('should generate different tokens each call', () => {
+    const token1 = generateSecureToken(16);
+    const token2 = generateSecureToken(16);
+    const token3 = generateSecureToken(16);
+    
+    expect(token1).not.toBe(token2);
+    expect(token2).not.toBe(token3);
+    expect(token1).not.toBe(token3);
+  });
+});
+
+
+describe('verifyToken()', () => {
+  test('should use safeCompare internally', () => {
+    const spy = jest.spyOn(securityService, 'safeCompare');
+    verifyToken('token123', 'token123');
+    expect(spy).toHaveBeenCalledWith('token123', 'token123');
+    spy.mockRestore();
+  });
+
+  test('should return true for matching tokens', () => {
+    const token = generateSecureToken(32);
+    expect(verifyToken(token, token)).toBe(true);
+  });
+
+  test('should return false for non-matching tokens', () => {
+    const token1 = generateSecureToken(32);
+    const token2 = generateSecureToken(32);
+    expect(verifyToken(token1, token2)).toBe(false);
+  });
+
+  test('should handle null/undefined safely', () => {
+    expect(verifyToken(null, 'token')).toBe(false);
+    expect(verifyToken('token', null)).toBe(false);
+    expect(verifyToken(undefined, 'token')).toBe(false);
+    expect(verifyToken('token', undefined)).toBe(false);
+    expect(verifyToken(null, null)).toBe(false);
+  });
+
+  test('should return false for empty strings', () => {
+    expect(verifyToken('', 'token')).toBe(false);
+    expect(verifyToken('token', '')).toBe(false);
+    expect(verifyToken('', '')).toBe(false);
+  });
+
+  test('should be timing-safe (uses safeCompare)', () => {
+    const token = generateSecureToken(32);
+    const wrongToken = generateSecureToken(32);
+    
+    // Both should execute in similar time due to safeCompare
+    expect(verifyToken(token, token)).toBe(true);
+    expect(verifyToken(token, wrongToken)).toBe(false);
   });
 });

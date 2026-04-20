@@ -8,8 +8,9 @@ const createJestConfig = nextJest({
 const customJestConfig = {
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/test/setup/jest.setup.js'],
-    transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { configFile: './babel.jest.config.js' }]},
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { configFile: './babel.jest.config.js' }]
+  },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
@@ -24,10 +25,13 @@ const customJestConfig = {
     'lib/**/*.js',
     '!**/node_modules/**'
   ],
-  // Add this to transform ES modules
   transformIgnorePatterns: [
     '/node_modules/(?!(sanitize-html)/)'
-  ]
+  ],
+  fakeTimers: {
+    enableGlobally: true,
+
+  }
 }
 
 module.exports = createJestConfig(customJestConfig)
