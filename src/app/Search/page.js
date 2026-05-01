@@ -1,7 +1,9 @@
 // src/app/Search/page.js
 "use client";
 
-import { useState, useCallback } from "react";
+import CardDetail from "../../../components/cardApi/cardDetail";
+
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useCardSearch } from "../../../hooks/v2/useCardSearch";
 import {
   getCardImage,
@@ -12,13 +14,17 @@ import Image from "next/image";
 export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [selectedCard, setSelectedCard] = useState(null);
   const [filters, setFilters] = useState({
     type: "",
     set: "",
+    setName: "",
     rarity: "",
     minHp: "",
     maxHp: "",
     exactName: false,
+    localId: "",
   });
 
   const {
@@ -27,56 +33,80 @@ export default function SearchPage() {
     error,
     pagination,
     search,
-    loadMore,
-    hasMore,
   } = useCardSearch();
 
-  // Handle basic search
+  const currentFiltersRef = useRef({ name: "", pageSize: 20 });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handleSearch = useCallback(
     (query) => {
-      if (!query || !query.trim()) return;
+      const criteria = { pageSize: 20 };
 
-      const criteria = { name: query.trim(), pageSize: 20 };
+      if (query && query.trim()) {
+        // Capitalize first letter
+        const formatted = query.trim();
+        criteria.name =
+          formatted.charAt(0).toUpperCase() + formatted.slice(1).toLowerCase();
+      }
 
-      // Add any active filters
+      if (filters.localId) {
+        const num = parseInt(filters.localId);
+        if (!isNaN(num)) {
+          criteria.localId = num.toString().padStart(3, "0");
+        } else {
+          criteria.localId = filters.localId;
+        }
+      }
+
       if (filters.type) criteria.types = [filters.type];
       if (filters.set) criteria.set = filters.set;
+      if (filters.setName) criteria.set = filters.setName;
       if (filters.rarity) criteria.rarity = filters.rarity;
       if (filters.minHp) criteria.minHp = parseInt(filters.minHp);
       if (filters.maxHp) criteria.maxHp = parseInt(filters.maxHp);
       if (filters.exactName) criteria.exactName = true;
 
+      // Require at least one filter (name, set, type, etc.)
+      const hasFilters =
+        criteria.name ||
+        criteria.set ||
+        criteria.types ||
+        criteria.rarity ||
+        criteria.minHp ||
+        criteria.maxHp;
+      if (!hasFilters) return;
+
+      currentFiltersRef.current = criteria;
       search(criteria);
     },
     [filters, search],
   );
 
-  // Handle filter change
+  const applyFilters = () => {
+    handleSearch(searchQuery);
+    setAdvancedOpen(false);
+  };
+
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  // Apply filters to current search
-  const applyFilters = () => {
-    if (searchQuery.trim()) {
-      handleSearch(searchQuery);
-    }
-    setAdvancedOpen(false);
-  };
-
-  // Clear all filters
   const clearFilters = () => {
     setFilters({
       type: "",
       set: "",
+      setName: "",
       rarity: "",
       minHp: "",
       maxHp: "",
+      localId: "",
       exactName: false,
     });
   };
 
-  // Card types for filter dropdown
   const pokemonTypes = [
     "Colorless",
     "Grass",
@@ -91,7 +121,6 @@ export default function SearchPage() {
     "Fairy",
   ];
 
-  // Rarity options
   const rarities = [
     "Common",
     "Uncommon",
@@ -113,7 +142,6 @@ export default function SearchPage() {
           Search hundreds of Pokémon cards with real-time Cardmarket pricing
         </p>
 
-        {/* Search Input */}
         <div className="max-w-2xl mx-auto mb-4">
           <div className="flex gap-3">
             <input
@@ -127,15 +155,14 @@ export default function SearchPage() {
             />
             <button
               onClick={() => handleSearch(searchQuery)}
-              disabled={isLoading || !searchQuery.trim()}
-              className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              disabled={isLoading}
+              className="..."
             >
               {isLoading ? "Searching..." : "Search"}
             </button>
           </div>
         </div>
 
-        {/* Advanced Filters Toggle */}
         <div className="max-w-2xl mx-auto mb-6">
           <button
             onClick={() => setAdvancedOpen(!advancedOpen)}
@@ -145,11 +172,24 @@ export default function SearchPage() {
           </button>
         </div>
 
-        {/* Advanced Filters Panel */}
         {advancedOpen && (
           <div className="max-w-2xl mx-auto mb-6 p-6 bg-gray-800 rounded-lg border border-gray-700">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Type Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Card Number
+                </label>
+                <input
+                  type="text"
+                  value={filters.localId}
+                  onChange={(e) =>
+                    handleFilterChange("localId", e.target.value)
+                  }
+                  placeholder="e.g., 025"
+                  className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Type
@@ -168,7 +208,6 @@ export default function SearchPage() {
                 </select>
               </div>
 
-              {/* Rarity Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Rarity
@@ -187,7 +226,6 @@ export default function SearchPage() {
                 </select>
               </div>
 
-              {/* Set Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Set ID
@@ -201,7 +239,21 @@ export default function SearchPage() {
                 />
               </div>
 
-              {/* Exact Name Toggle */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Set Name
+                </label>
+                <input
+                  type="text"
+                  value={filters.setName}
+                  onChange={(e) =>
+                    handleFilterChange("setName", e.target.value)
+                  }
+                  placeholder="e.g., 151, Mythical Island"
+                  className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
               <div className="flex items-center">
                 <label className="flex items-center cursor-pointer">
                   <input
@@ -218,7 +270,6 @@ export default function SearchPage() {
                 </label>
               </div>
 
-              {/* HP Range */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Min HP
@@ -247,7 +298,6 @@ export default function SearchPage() {
               </div>
             </div>
 
-            {/* Filter Actions */}
             <div className="flex gap-3 mt-4 pt-4 border-t border-gray-700">
               <button
                 onClick={applyFilters}
@@ -265,39 +315,35 @@ export default function SearchPage() {
           </div>
         )}
 
-        {/* Error Display */}
         {error && (
           <div className="max-w-2xl mx-auto mb-6 p-4 bg-red-900/50 border border-red-700 rounded-lg">
             <p className="text-red-400">{error}</p>
           </div>
         )}
 
-        {/* Loading State */}
         {isLoading && searchResults.length === 0 && (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
           </div>
         )}
 
-        {/* Results */}
         {!isLoading && searchResults.length > 0 && (
           <>
-            {/* Results Summary */}
             <div className="max-w-2xl mx-auto mb-4">
               <p className="text-sm text-gray-400">
                 Showing {searchResults.length} of {pagination.total} results
-                {pagination.total > 20 && ` (Page ${pagination.page})`}
+                {pagination.total > pagination.pageSize &&
+                  ` (Page ${pagination.page})`}
               </p>
             </div>
 
-            {/* Card Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-7xl mx-auto">
               {searchResults.map((card) => (
                 <div
                   key={card.id}
-                  className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden hover:border-blue-500 hover:shadow-lg transition-all"
+                  onClick={() => setSelectedCard(card)}
+                  className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer"
                 >
-                  {/* Card Image */}
                   <div className="relative w-full aspect-[2.5/3.5] bg-gray-900">
                     {getCardImage(card, "large") ? (
                       <Image
@@ -314,7 +360,6 @@ export default function SearchPage() {
                     )}
                   </div>
 
-                  {/* Card Info */}
                   <div className="p-4">
                     <h3
                       className="font-semibold text-white text-sm truncate"
@@ -323,13 +368,11 @@ export default function SearchPage() {
                       {card.name}
                     </h3>
 
-                    {/* Set & Number */}
                     <p className="text-gray-400 text-xs truncate mt-1">
                       {card.set?.name || "Unknown Set"}
                       {card.localId && ` • #${card.localId}`}
                     </p>
 
-                    {/* Types */}
                     {card.types && card.types.length > 0 && (
                       <div className="flex gap-1 mt-2">
                         {card.types.map((type) => (
@@ -343,7 +386,6 @@ export default function SearchPage() {
                       </div>
                     )}
 
-                    {/* Rarity & HP */}
                     <div className="flex justify-between items-center mt-2">
                       {card.rarity && (
                         <span className="text-gray-500 text-xs">
@@ -357,7 +399,6 @@ export default function SearchPage() {
                       )}
                     </div>
 
-                    {/* Pricing */}
                     {card.pricing &&
                       (card.pricing.avg30 || card.pricing.trend) && (
                         <div className="mt-3 pt-3 border-t border-gray-700">
@@ -380,7 +421,6 @@ export default function SearchPage() {
                         </div>
                       )}
 
-                    {/* Card ID */}
                     <p
                       className="text-gray-600 text-xs font-mono mt-2 truncate"
                       title={card.id}
@@ -390,26 +430,57 @@ export default function SearchPage() {
                   </div>
                 </div>
               ))}
+              {selectedCard && (
+                <CardDetail
+                  card={selectedCard}
+                  onClose={() => setSelectedCard(null)}
+                />
+              )}
             </div>
 
-            {/* Load More Button */}
-            {hasMore && (
-              <div className="flex justify-center mt-8 mb-12">
+            {pagination.total > pagination.pageSize && (
+              <div className="flex justify-center items-center gap-4 mt-8 mb-12">
                 <button
-                  onClick={loadMore}
-                  disabled={isLoading}
-                  className="px-8 py-3 bg-gray-800 text-white font-medium rounded-lg hover:bg-gray-700 border border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  onClick={() =>
+                    search(
+                      {
+                        ...currentFiltersRef.current,
+                        page: pagination.page - 1,
+                      },
+                      { debounceMs: 0 },
+                    )
+                  }
+                  disabled={pagination.page <= 1 || isLoading}
+                  className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {isLoading
-                    ? "Loading..."
-                    : `Load More (${pagination.total - searchResults.length} remaining)`}
+                  ← Previous
+                </button>
+
+                <span className="text-gray-400">
+                  Page {pagination.page} of{" "}
+                  {Math.ceil(pagination.total / pagination.pageSize)}
+                </span>
+
+                <button
+                  onClick={() =>
+                    search(
+                      {
+                        ...currentFiltersRef.current,
+                        page: pagination.page + 1,
+                      },
+                      { debounceMs: 0 },
+                    )
+                  }
+                  disabled={!pagination.hasMore || isLoading}
+                  className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next →
                 </button>
               </div>
             )}
           </>
         )}
 
-        {/* Empty State */}
         {!isLoading && searchQuery && searchResults.length === 0 && !error && (
           <div className="text-center py-12">
             <span className="text-6xl">🔍</span>
@@ -425,7 +496,6 @@ export default function SearchPage() {
           </div>
         )}
 
-        {/* Initial State */}
         {!isLoading && !searchQuery && searchResults.length === 0 && !error && (
           <div className="text-center py-12">
             <span className="text-6xl">⚡</span>
