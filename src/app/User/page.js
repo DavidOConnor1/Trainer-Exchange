@@ -4,21 +4,29 @@ import { useRouter } from "next/navigation";
 import { Auth } from "../../../auth/hooks/v1/signUser";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { useCollections } from "../../../collections/hooks/useCollectionStore";
-import { supabase } from "../../../lib/api";
-import { Settings, Plus, Trash2, FolderPlus, X, Package, DollarSign } from "lucide-react";
+import { supabase } from "../../../lib/supabase/api";
+import {
+  Settings,
+  Plus,
+  Trash2,
+  FolderPlus,
+  X,
+  Package,
+  DollarSign,
+} from "lucide-react";
 
 export default function UsersPage() {
   const router = useRouter();
   const { user, loading: authLoading, signOut } = useAuth();
-  const { 
-    collections, 
-    loading: collectionsLoading, 
+  const {
+    collections,
+    loading: collectionsLoading,
     error,
-    createCollection, 
+    createCollection,
     deleteCollection,
-    refreshCollections
+    refreshCollections,
   } = useCollections();
-  
+
   const [showSettings, setShowSettings] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -34,11 +42,11 @@ export default function UsersPage() {
     if (user) {
       // Get name from user metadata, fallback to email username
       const nameFromMetadata = user.user_metadata?.name;
-      if (nameFromMetadata && nameFromMetadata !== '') {
+      if (nameFromMetadata && nameFromMetadata !== "") {
         setDisplayName(nameFromMetadata);
       } else {
         // Fallback: extract username from email (part before @)
-        const emailUsername = user.email?.split('@')[0] || 'User';
+        const emailUsername = user.email?.split("@")[0] || "User";
         setDisplayName(emailUsername);
       }
     }
@@ -50,29 +58,29 @@ export default function UsersPage() {
       setCollectionsStats({});
       return;
     }
-    
+
     setLoadingStats(true);
     try {
       const stats = {};
-      
+
       for (const collection of collections) {
         const { data: cardsData, error } = await supabase
-          .from('cards')
-          .select('price, quantity')
-          .eq('collection_id', collection.id);
-        
+          .from("cards")
+          .select("price, quantity")
+          .eq("collection_id", collection.id);
+
         if (!error && cardsData) {
           const collectionTotalValue = cardsData.reduce((sum, card) => {
-            return sum + (card.price * (card.quantity || 1));
+            return sum + card.price * (card.quantity || 1);
           }, 0);
-          
+
           stats[collection.id] = {
             card_count: cardsData.length,
-            total_value: collectionTotalValue
+            total_value: collectionTotalValue,
           };
         }
       }
-      
+
       setCollectionsStats(stats);
     } catch (err) {
       console.error("Error fetching collection stats:", err);
@@ -90,21 +98,23 @@ export default function UsersPage() {
   const calculateOverallTotals = () => {
     let totalValue = 0;
     let totalCards = 0;
-    
-    Object.values(collectionsStats).forEach(stat => {
+
+    Object.values(collectionsStats).forEach((stat) => {
       totalValue += stat.total_value;
       totalCards += stat.card_count;
     });
-    
+
     return { totalValue, totalCards };
   };
 
-  const { totalValue: totalCollectionsValue, totalCards: totalCardsCount } = calculateOverallTotals();
+  const { totalValue: totalCollectionsValue, totalCards: totalCardsCount } =
+    calculateOverallTotals();
 
   const handleCreateCollection = async () => {
     if (!newCollectionName.trim()) return;
-    
-    try {//start try catch
+
+    try {
+      //start try catch
       const description = newCollectionDescription.trim() || null; //will take a description or can be null
       await createCollection(newCollectionName.trim(), description);
       setShowCreateModal(false);
@@ -113,20 +123,21 @@ export default function UsersPage() {
     } catch (err) {
       console.error("Error creating collection:", err);
       alert("Failed to create collection: " + err.message);
-    }//end try catch
+    } //end try catch
   };
 
   const handleDeleteCollection = async () => {
     if (!selectedCollection) return;
-    
-    try {//start try catch
+
+    try {
+      //start try catch
       await deleteCollection(selectedCollection.id);
       setShowDeleteModal(false);
       setSelectedCollection(null);
     } catch (err) {
       console.error("Error deleting collection:", err);
       alert("Failed to delete collection: " + err.message);
-    }// end try catch
+    } // end try catch
   };
 
   if (authLoading) {
@@ -194,7 +205,6 @@ export default function UsersPage() {
         </div>
       )}
 
-      
       {/* Main Content */}
       <div className="pt-24 pb-8 px-4 max-w-lg mx-auto">
         {/* Stats Cards */}
@@ -222,7 +232,13 @@ export default function UsersPage() {
               </h3>
             </div>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              ${loadingStats ? "..." : totalCollectionsValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              $
+              {loadingStats
+                ? "..."
+                : totalCollectionsValue.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
             </p>
           </div>
         </div>
@@ -253,7 +269,7 @@ export default function UsersPage() {
             ) : error ? (
               <div className="text-center py-8 text-red-500">
                 <p>Error: {error}</p>
-                <button 
+                <button
                   onClick={() => refreshCollections()}
                   className="mt-2 text-blue-600 hover:underline"
                 >
@@ -282,7 +298,10 @@ export default function UsersPage() {
             ) : (
               <div className="space-y-3">
                 {collections.map((collection) => {
-                  const stats = collectionsStats[collection.id] || { card_count: 0, total_value: 0 };
+                  const stats = collectionsStats[collection.id] || {
+                    card_count: 0,
+                    total_value: 0,
+                  };
                   return (
                     <div
                       key={collection.id}
@@ -292,7 +311,9 @@ export default function UsersPage() {
                         <h3 className="font-medium text-gray-900 dark:text-white">
                           {collection.name}
                           {collection.isTemp && (
-                            <span className="ml-2 text-xs text-yellow-500">Saving...</span>
+                            <span className="ml-2 text-xs text-yellow-500">
+                              Saving...
+                            </span>
                           )}
                         </h3>
                         {collection.description && (
@@ -302,10 +323,15 @@ export default function UsersPage() {
                         )}
                         <div className="flex gap-3 mt-1">
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {stats.card_count} {stats.card_count === 1 ? 'card' : 'cards'}
+                            {stats.card_count}{" "}
+                            {stats.card_count === 1 ? "card" : "cards"}
                           </p>
                           <p className="text-xs font-medium text-green-600 dark:text-green-400">
-                            ${stats.total_value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            $
+                            {stats.total_value.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
                           </p>
                         </div>
                       </div>
@@ -398,7 +424,12 @@ export default function UsersPage() {
             </p>
             {collectionsStats[selectedCollection.id]?.card_count > 0 && (
               <p className="text-sm text-red-600 dark:text-red-400 mb-6 bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">
-                ⚠️ This collection contains {collectionsStats[selectedCollection.id].card_count} {collectionsStats[selectedCollection.id].card_count === 1 ? 'card' : 'cards'}. They will also be deleted.
+                ⚠️ This collection contains{" "}
+                {collectionsStats[selectedCollection.id].card_count}{" "}
+                {collectionsStats[selectedCollection.id].card_count === 1
+                  ? "card"
+                  : "cards"}
+                . They will also be deleted.
               </p>
             )}
             <div className="flex gap-2">

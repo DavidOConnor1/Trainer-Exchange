@@ -1,7 +1,7 @@
-export default function Collection() {
-  return (
-   <div className="Collection">
-        <h1>Hello I am collection</h1>
-   </div>
-  );
+"use client";
+
+import CollectionManager from "../../../collections/components/CollectionManager";
+
+export default function CollectionPage() {
+  return <CollectionManager />;
 }

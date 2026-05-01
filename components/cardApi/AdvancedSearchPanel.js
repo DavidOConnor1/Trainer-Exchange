@@ -1,49 +1,55 @@
 // components/AdvancedSearchPanel.js
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
+import { searchCards } from "../../lib/pokemonApi/client";
 
 export default function AdvancedSearchPanel({ onSearch, isLoading }) {
   const [criteria, setCriteria] = useState({
-    name: '',
-    type: '',
-    set: '',
-    rarity: '',
-    hp: '',
-    exact: false
+    name: "",
+    type: "",
+    set: "",
+    rarity: "",
+    hp: "",
+    exact: false,
   });
 
   const handleChange = (field, value) => {
-    setCriteria(prev => ({
+    setCriteria((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
-  const handleSubmit = (e) => {
+  const { search, loading, error } = useCardSearch();
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     // Remove empty fields
     const cleanCriteria = Object.fromEntries(
-      Object.entries(criteria).filter(([_, v]) => v !== '' && v !== false)
+      Object.entries(criteria).filter(([_, v]) => v !== "" && v !== false),
     );
-    onSearch(cleanCriteria);
+    const result = await search(cleanCriteria);
+    if (onSearch && result) {
+      onSearch(result);
+    }
   };
 
   const handleReset = () => {
     setCriteria({
-      name: '',
-      type: '',
-      set: '',
-      rarity: '',
-      hp: '',
-      exact: false
+      name: "",
+      type: "",
+      set: "",
+      rarity: "",
+      hp: "",
+      exact: false,
     });
   };
 
   return (
     <div className="p-6 border border-gray-300 rounded-lg bg-white shadow-sm">
       <h3 className="text-lg font-semibold mb-4">Advanced Search</h3>
-      
+
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           {/* Name */}
@@ -54,7 +60,7 @@ export default function AdvancedSearchPanel({ onSearch, isLoading }) {
             <input
               type="text"
               value={criteria.name}
-              onChange={(e) => handleChange('name', e.target.value)}
+              onChange={(e) => handleChange("name", e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="e.g., Charizard"
             />
@@ -63,7 +69,7 @@ export default function AdvancedSearchPanel({ onSearch, isLoading }) {
                 <input
                   type="checkbox"
                   checked={criteria.exact}
-                  onChange={(e) => handleChange('exact', e.target.checked)}
+                  onChange={(e) => handleChange("exact", e.target.checked)}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="ml-2 text-sm text-gray-600">Exact match</span>
@@ -78,7 +84,7 @@ export default function AdvancedSearchPanel({ onSearch, isLoading }) {
             </label>
             <select
               value={criteria.type}
-              onChange={(e) => handleChange('type', e.target.value)}
+              onChange={(e) => handleChange("type", e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Any Type</option>
@@ -104,7 +110,7 @@ export default function AdvancedSearchPanel({ onSearch, isLoading }) {
             <input
               type="text"
               value={criteria.set}
-              onChange={(e) => handleChange('set', e.target.value)}
+              onChange={(e) => handleChange("set", e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="e.g., Base Set, Vivid Voltage"
             />
@@ -117,7 +123,7 @@ export default function AdvancedSearchPanel({ onSearch, isLoading }) {
             </label>
             <select
               value={criteria.rarity}
-              onChange={(e) => handleChange('rarity', e.target.value)}
+              onChange={(e) => handleChange("rarity", e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Any Rarity</option>
@@ -140,7 +146,7 @@ export default function AdvancedSearchPanel({ onSearch, isLoading }) {
             <input
               type="number"
               value={criteria.hp}
-              onChange={(e) => handleChange('hp', e.target.value)}
+              onChange={(e) => handleChange("hp", e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="e.g., 100"
               min="0"
@@ -152,12 +158,14 @@ export default function AdvancedSearchPanel({ onSearch, isLoading }) {
         <div className="flex gap-3">
           <button
             type="submit"
-            disabled={isLoading || (!criteria.name && !criteria.type && !criteria.set)}
+            disabled={
+              isLoading || (!criteria.name && !criteria.type && !criteria.set)
+            }
             className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading ? 'Searching...' : 'Search'}
+            {isLoading ? "Searching..." : "Search"}
           </button>
-          
+
           <button
             type="button"
             onClick={handleReset}
@@ -172,7 +180,10 @@ export default function AdvancedSearchPanel({ onSearch, isLoading }) {
       <div className="mt-6 pt-6 border-t border-gray-200">
         <h4 className="text-sm font-medium text-gray-700 mb-2">Search Tips:</h4>
         <ul className="text-sm text-gray-600 space-y-1">
-          <li>• Use * for wildcard searches (e.g., "char*" finds Charizard, Charmander, etc.)</li>
+          <li>
+            • Use * for wildcard searches (e.g., "char*" finds Charizard,
+            Charmander, etc.)
+          </li>
           <li>• Leave fields blank to search all cards</li>
           <li>• Combine multiple criteria for precise searches</li>
         </ul>

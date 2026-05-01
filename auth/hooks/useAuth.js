@@ -1,5 +1,5 @@
 "use client";
-import { supabase } from "../../lib/api";
+import { supabase } from "../../lib/supabase/api";
 import { useState, useEffect, useRef } from "react";
 
 export function useAuth() {
@@ -10,10 +10,13 @@ export function useAuth() {
   // Fetch current session
   const fetchSession = async () => {
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+
       if (error) throw error;
-      
+
       // Check if session exists and isn't expired
       if (session && session.expires_at) {
         const isExpired = session.expires_at * 1000 < Date.now();
@@ -50,11 +53,14 @@ export function useAuth() {
     if (inactivityTimerRef.current) {
       clearTimeout(inactivityTimerRef.current);
     }
-    
+
     if (user) {
-      inactivityTimerRef.current = setTimeout(() => {
-        flushSession();
-      }, 15 * 60 * 1000); // 15 minutes
+      inactivityTimerRef.current = setTimeout(
+        () => {
+          flushSession();
+        },
+        15 * 60 * 1000,
+      ); // 15 minutes
     }
   };
 
@@ -62,7 +68,9 @@ export function useAuth() {
     fetchSession();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
         resetInactivityTimer();
@@ -72,20 +80,24 @@ export function useAuth() {
     });
 
     // Set up activity listeners for inactivity timeout
-    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    const events = ["mousedown", "keydown", "scroll", "touchstart", "click"];
     const handleUserActivity = () => {
       if (user) resetInactivityTimer();
     };
-    
-    events.forEach(event => window.addEventListener(event, handleUserActivity));
-    
+
+    events.forEach((event) =>
+      window.addEventListener(event, handleUserActivity),
+    );
+
     // Start timer if user is logged in
     if (user) resetInactivityTimer();
 
     // Cleanup
     return () => {
       subscription.unsubscribe();
-      events.forEach(event => window.removeEventListener(event, handleUserActivity));
+      events.forEach((event) =>
+        window.removeEventListener(event, handleUserActivity),
+      );
       if (inactivityTimerRef.current) {
         clearTimeout(inactivityTimerRef.current);
       }
@@ -101,4 +113,4 @@ export function useAuth() {
   };
 
   return { user, loading, signOut };
-}//end useAuth
+} //end useAuth

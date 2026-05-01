@@ -1,20 +1,28 @@
 // hooks/useAuthLogic.js
-import { useState } from 'react';
-import { supabase } from '../../lib/api';
-import securityService from '../../lib/security';
+import { useState } from "react";
+import { supabase } from "../../lib/supabase/api";
+import securityService from "../../lib/security";
 
 export const useAuthLogic = () => {
   const [isSignUp, setIsSignUp] = useState(false);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [attempts, setAttempts] = useState(0);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Create rate limiters for different actions
-  const loginRateLimiter = securityService.getRateLimiter('login', 5, 15 * 60 * 1000);
-  const signupRateLimiter = securityService.getRateLimiter('signup', 3, 60 * 60 * 1000);
+  const loginRateLimiter = securityService.getRateLimiter(
+    "login",
+    5,
+    15 * 60 * 1000,
+  );
+  const signupRateLimiter = securityService.getRateLimiter(
+    "signup",
+    3,
+    60 * 60 * 1000,
+  );
 
   // Validate and sanitize inputs
   const validateAndSanitizeInputs = () => {
@@ -24,17 +32,17 @@ export const useAuthLogic = () => {
 
     // Basic validation
     if (!sanitizedEmail || !sanitizedPassword) {
-      setErrorMessage('Email and password are required');
+      setErrorMessage("Email and password are required");
       return null;
     }
 
     if (!securityService.isValidEmail(sanitizedEmail)) {
-      setErrorMessage('Please enter a valid email address');
+      setErrorMessage("Please enter a valid email address");
       return null;
     }
 
     if (sanitizedPassword.length < 8) {
-      setErrorMessage('Password must be at least 8 characters');
+      setErrorMessage("Password must be at least 8 characters");
       return null;
     }
 
@@ -42,11 +50,15 @@ export const useAuthLogic = () => {
   };
 
   // Handle sign up
-  const handleSignUp = async (sanitizedName, sanitizedEmail, sanitizedPassword) => {
+  const handleSignUp = async (
+    sanitizedName,
+    sanitizedEmail,
+    sanitizedPassword,
+  ) => {
     // Check rate limit for signup
     const identifier = sanitizedEmail;
     if (!signupRateLimiter.canProceed(identifier)) {
-      setErrorMessage('Too many signup attempts. Please try again later.');
+      setErrorMessage("Too many signup attempts. Please try again later.");
       return false;
     }
 
@@ -56,13 +68,13 @@ export const useAuthLogic = () => {
     };
 
     // Add user metadata if name exists
-    if (sanitizedName && sanitizedName !== '') {
+    if (sanitizedName && sanitizedName !== "") {
       signUpData.options = {
         data: {
           name: sanitizedName,
           security_token: securityService.generateSecureToken(32),
-          created_at: new Date().toISOString()
-        }
+          created_at: new Date().toISOString(),
+        },
       };
     }
 
@@ -77,13 +89,13 @@ export const useAuthLogic = () => {
     if (success) {
       signupRateLimiter.clear(identifier);
       // Clear form on success
-      setName('');
-      setEmail('');
-      setPassword('');
-      setErrorMessage('');
+      setName("");
+      setEmail("");
+      setPassword("");
+      setErrorMessage("");
     }
 
-    console.log('Sign up successful! Check your email to confirm.', data);
+    console.log("Sign up successful! Check your email to confirm.", data);
     return success;
   };
 
@@ -91,45 +103,47 @@ export const useAuthLogic = () => {
   const handleSignIn = async (sanitizedEmail, sanitizedPassword) => {
     // Add timing prevention to obscure response time
     await securityService.timingPrevention(attempts);
-    
+
     // Check rate limit for login
     const identifier = sanitizedEmail;
     if (!loginRateLimiter.canProceed(identifier)) {
-      setErrorMessage('Too many login attempts. Please wait 15 minutes.');
+      setErrorMessage("Too many login attempts. Please wait 15 minutes.");
       return false;
     }
 
-    setAttempts(prev => prev + 1);
+    setAttempts((prev) => prev + 1);
 
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email: sanitizedEmail,
-      password: sanitizedPassword
-    });
+    const { data, error: signInError } = await supabase.auth.signInWithPassword(
+      {
+        email: sanitizedEmail,
+        password: sanitizedPassword,
+      },
+    );
 
     if (signInError) {
       // Use timing-safe error message (don't reveal if email exists)
-      setErrorMessage('Invalid email or password');
-      console.error('Sign in error:', signInError.message);
+      setErrorMessage("Invalid email or password");
+      console.error("Sign in error:", signInError.message);
       return false;
     }
 
     const success = !!data?.user;
     if (success) {
       loginRateLimiter.clear(identifier);
-      setEmail('');
-      setPassword('');
+      setEmail("");
+      setPassword("");
       setAttempts(0);
-      setErrorMessage('');
+      setErrorMessage("");
     }
 
-    console.log('Sign in successful!', data);
+    console.log("Sign in successful!", data);
     return success;
   };
 
   // Main submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMessage('');
+    setErrorMessage("");
     setLoading(true);
 
     try {
@@ -144,15 +158,19 @@ export const useAuthLogic = () => {
 
       let success = false;
       if (isSignUp) {
-        success = await handleSignUp(sanitizedName, sanitizedEmail, sanitizedPassword);
+        success = await handleSignUp(
+          sanitizedName,
+          sanitizedEmail,
+          sanitizedPassword,
+        );
       } else {
         success = await handleSignIn(sanitizedEmail, sanitizedPassword);
       }
 
       return success;
     } catch (error) {
-      console.error('Auth error:', error);
-      setErrorMessage('An unexpected error occurred. Please try again.');
+      console.error("Auth error:", error);
+      setErrorMessage("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -161,7 +179,7 @@ export const useAuthLogic = () => {
   // Switch between sign up and sign in
   const toggleMode = () => {
     setIsSignUp(!isSignUp);
-    setErrorMessage('');
+    setErrorMessage("");
     setAttempts(0);
   };
 
@@ -174,12 +192,12 @@ export const useAuthLogic = () => {
     loading,
     errorMessage,
     attempts,
-    
+
     // Setters
     setName,
     setEmail,
     setPassword,
-    
+
     // Handlers
     handleSubmit,
     toggleMode,

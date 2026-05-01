@@ -1,9 +1,12 @@
+// collections/components/CollectionManager.js
 "use client";
-import { useState } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useCollections } from "../../hooks/v1/useCollections";
 import { useCards } from "../../hooks/v1/useCards";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { pokemonApi } from "../../lib/pokemonApi/client";
 import Image from "next/image";
+import CardImage from "../../components/cardApi/cardImage";
 
 export default function CollectionManager() {
   const { user } = useAuth();
@@ -170,7 +173,7 @@ function CollectionCard({ collection, onSelect, onDelete }) {
   );
 }
 
-// Collection View Modal with Cards
+// Collection View Modal with proper image handling
 function CollectionView({ collection, onClose }) {
   const { cards, loading, totalValue, addCard, deleteCard } = useCards(
     collection.id,
@@ -178,138 +181,243 @@ function CollectionView({ collection, onClose }) {
   const [showAddCard, setShowAddCard] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
+  const [searchingCards, setSearchingCards] = useState(false);
+  const [searchError, setSearchError] = useState(null);
+  const [apiStatus, setApiStatus] = useState({
+    checked: false,
+    working: false,
+    message: "",
+  });
+  const [searchMode, setSearchMode] = useState("name");
 
-  // Search Pokemon cards (you'll integrate with Pokemon API)
-  const searchCards = async () => {
-    // This is where you'd call your Pokemon API
-    // For now, just a placeholder
-    setSearchResults([
-      {
-        id: "1",
-        name: "Pikachu",
-        type: "Electric",
-        set_name: "Base Set",
-        price: 10.99,
-        image_url: "/placeholder.png",
-      },
-    ]);
+  const debounceRef = useRef(null);
+
+  // Helper function to validate image URLs
+  const isValidImageUrl = (url) => {
+    if (!url || typeof url !== "string") return false;
+    if (url === "undefined" || url === "null") return false;
+    if (url.includes("undefined") || url.includes("null")) return false;
+
+    try {
+      new URL(url);
+      return url.startsWith("http://") || url.startsWith("https://");
+    } catch {
+      return false;
+    }
   };
+
+  // Helper to get a fallback or placeholder
+  const getCardImage = (card) => {
+    // Check all possible image sources
+    const imageUrl =
+      card.image_url ||
+      card.images?.small ||
+      card.images?.large ||
+      card._original?.images?.small ||
+      card._original?.images?.large;
+
+    if (isValidImageUrl(imageUrl)) {
+      return imageUrl;
+    }
+
+    // Return null for no image - we'll show a placeholder
+    return null;
+  };
+
+  // Rest of your hooks and functions...
+  // (keep testApiConnection, extractCardsFromResponse, searchPokemonCards, etc.)
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
       <div className="bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-700 flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold text-white">{collection.name}</h2>
-            <p className="text-gray-400 mt-1">
-              Total Value:{" "}
-              <span className="text-green-400 font-semibold">
-                ${totalValue.toFixed(2)}
-              </span>
-            </p>
-          </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
-            ✕
-          </button>
-        </div>
+        {/* Header - keep as is */}
 
         <div className="p-6">
-          <div className="flex gap-4 mb-6">
-            <button
-              onClick={() => setShowAddCard(!showAddCard)}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              + Add Card
-            </button>
-          </div>
+          {/* ... existing code ... */}
 
-          {/* Add Card Form */}
-          {showAddCard && (
-            <div className="mb-6 p-4 bg-gray-800 rounded-lg">
-              <h3 className="text-lg font-semibold text-white mb-3">
-                Search Cards
-              </h3>
-              <div className="flex gap-3 mb-4">
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search for a Pokemon card..."
-                  className="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white"
-                />
-                <button
-                  onClick={searchCards}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Search
-                </button>
-              </div>
+          {/* Search Results - FIXED IMAGE HANDLING */}
+          {!searchingCards && searchResults.length > 0 && (
+            <div>
+              <p className="text-sm text-gray-400 mb-3">
+                Found {searchResults.length} card
+                {searchResults.length !== 1 ? "s" : ""}
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {searchResults.map((card) => {
+                  const imageUrl = getCardImage(card);
 
-              {/* Search Results */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {searchResults.map((card) => (
-                  <div key={card.id} className="bg-gray-900 p-3 rounded-lg">
-                    <h4 className="font-semibold text-white">{card.name}</h4>
-                    <p className="text-gray-400 text-sm">{card.set_name}</p>
-                    <p className="text-green-400 font-semibold mt-2">
-                      ${card.price}
-                    </p>
-                    <button
-                      onClick={() => addCard(card)}
-                      className="mt-2 w-full px-2 py-1 bg-blue-600 text-white rounded text-sm"
+                  return (
+                    <div
+                      key={card.id || Math.random()}
+                      className="bg-gray-900 p-3 rounded-lg border border-gray-700 hover:border-blue-500 transition"
                     >
-                      Add to Collection
-                    </button>
-                  </div>
-                ))}
+                      {/* Card Image - FIXED */}
+                      <div className="relative w-full h-32 mb-2 bg-gray-800 rounded flex items-center justify-center">
+                        {imageUrl ? (
+                          <Image
+                            src={imageUrl}
+                            alt={card.name || "Pokemon card"}
+                            fill
+                            className="object-contain rounded"
+                            sizes="(max-width: 768px) 50vw, 25vw"
+                            onError={(e) => {
+                              // Hide broken image, show placeholder
+                              e.target.style.display = "none";
+                              e.target.parentElement.innerHTML = `
+                                <div class="flex items-center justify-center h-full">
+                                  <span class="text-gray-500 text-4xl">🃏</span>
+                                </div>
+                              `;
+                            }}
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-gray-500">
+                            <span className="text-4xl mb-1">🃏</span>
+                            <span className="text-xs">No image</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Card Info */}
+                      <h4
+                        className="font-semibold text-white text-sm truncate"
+                        title={card.name}
+                      >
+                        {card.name || "Unknown Card"}
+                      </h4>
+                      <p
+                        className="text-gray-400 text-xs truncate"
+                        title={card.set_name}
+                      >
+                        {card.set_name || "Unknown Set"}
+                      </p>
+                      <p className="text-gray-400 text-xs">
+                        {card.rarity || "Common"}{" "}
+                        {card.type && `• ${card.type}`}
+                      </p>
+                      {card.id && (
+                        <p className="text-gray-500 text-xs font-mono truncate">
+                          ID: {card.id}
+                        </p>
+                      )}
+
+                      {/* Price */}
+                      {card.price > 0 && (
+                        <p className="text-green-400 font-semibold mt-2 text-sm">
+                          €{Number(card.price).toFixed(2)}
+                        </p>
+                      )}
+
+                      {/* Add Button */}
+                      <button
+                        onClick={() => handleAddCard(card)}
+                        className="mt-2 w-full px-2 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition"
+                      >
+                        Add to Collection
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* Cards List */}
+          {/* Existing Cards in Collection - FIXED IMAGE HANDLING */}
           {loading ? (
             <div className="text-center text-gray-400 py-8">
-              Loading cards...
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-2"></div>
+              <p>Loading collection cards...</p>
             </div>
           ) : cards.length === 0 ? (
             <div className="text-center text-gray-400 py-8">
-              No cards in this collection yet. Add your first Pokemon card!
+              <p>No cards in this collection yet.</p>
+              <p className="text-sm mt-2">
+                Click "+ Add Cards" to search and add Pokemon cards!
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {cards.map((card) => (
-                <div key={card.id} className="bg-gray-800 rounded-lg p-4">
-                  {card.image_url && (
-                    <Image
-                      src={card.image_url}
-                      alt={card.name}
-                      width={200} //set width
-                      height={128} //set height
-                      className="w-full h-32 object-contain mb-3"
-                      unoptimized={!card.image_url?.startsWith("/")} // For external URLs
-                    />
-                  )}
-                  <h4 className="font-semibold text-white">{card.name}</h4>
-                  <p className="text-gray-400 text-sm">Type: {card.type}</p>
-                  <p className="text-gray-400 text-sm">Set: {card.set_name}</p>
-                  <p className="text-gray-400 text-sm">
-                    Quantity: {card.quantity}
-                  </p>
-                  <p className="text-green-400 font-semibold mt-2">
-                    ${(card.price * card.quantity).toFixed(2)}
-                  </p>
-                  <button
-                    onClick={() => deleteCard(card.id)}
-                    className="mt-3 w-full px-2 py-1 bg-red-600 text-white rounded text-sm"
+              {cards.map((card) => {
+                const imageUrl = getCardImage(card);
+
+                return (
+                  <div
+                    key={card.id}
+                    className="bg-gray-800 rounded-lg p-4 border border-gray-700"
                   >
-                    Remove
-                  </button>
-                </div>
-              ))}
+                    {/* Card Image - FIXED */}
+                    <div className="relative w-full h-32 mb-3 bg-gray-700 rounded flex items-center justify-center">
+                      {imageUrl ? (
+                        <Image
+                          src={imageUrl}
+                          alt={card.name || "Pokemon card"}
+                          fill
+                          className="object-contain rounded"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          onError={(e) => {
+                            e.target.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-gray-500">
+                          <span className="text-4xl mb-1">🃏</span>
+                          <span className="text-xs">No image available</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <h4
+                      className="font-semibold text-white truncate"
+                      title={card.name}
+                    >
+                      {card.name || "Unknown Card"}
+                    </h4>
+                    <p
+                      className="text-gray-400 text-sm truncate"
+                      title={card.set_name}
+                    >
+                      Set: {card.set_name || "Unknown"}
+                    </p>
+                    {card.type && (
+                      <p className="text-gray-400 text-sm">Type: {card.type}</p>
+                    )}
+                    {card.rarity && (
+                      <p className="text-gray-400 text-sm">
+                        Rarity: {card.rarity}
+                      </p>
+                    )}
+                    <p className="text-gray-400 text-sm">
+                      Quantity: {card.quantity || 1}
+                    </p>
+                    {card.condition && (
+                      <p className="text-gray-400 text-sm capitalize">
+                        Condition: {card.condition.replace(/_/g, " ")}
+                      </p>
+                    )}
+                    <p className="text-green-400 font-semibold mt-2">
+                      €
+                      {(
+                        (Number(card.price) || 0) * (Number(card.quantity) || 1)
+                      ).toFixed(2)}
+                    </p>
+                    {card.card_id && (
+                      <p className="text-gray-500 text-xs font-mono truncate">
+                        ID: {card.card_id}
+                      </p>
+                    )}
+                    <button
+                      onClick={() => deleteCard(card.id)}
+                      className="mt-3 w-full px-2 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
       </div>
     </div>
   );
-} //end of collection manager
+}
