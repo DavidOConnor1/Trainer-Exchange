@@ -1,9 +1,38 @@
+// components/cardApi/CardDetail.js
 "use client";
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { getCardImage, formatPrice } from "../../lib/pokemonApi/searchService";
 
 export default function CardDetail({ card, onClose }) {
+  const [pricing, setPricing] = useState(null);
+  const [loadingPricing, setLoadingPricing] = useState(false);
+
+  useEffect(() => {
+    if (!card) return;
+
+    const fetchPricing = async () => {
+      setLoadingPricing(true);
+      try {
+        const backendUrl =
+          process.env.NEXT_PUBLIC_BACKEND_URL ||
+          "https://prolific-heart.up.railway.app";
+        const res = await fetch(
+          `${backendUrl}/api/cards/id/${card.id}/pricing`,
+        );
+        const data = await res.json();
+        setPricing(data.pricing);
+      } catch (error) {
+        console.error("Failed to fetch pricing:", error);
+      } finally {
+        setLoadingPricing(false);
+      }
+    };
+
+    fetchPricing();
+  }, [card]);
+
   if (!card) return null;
 
   return (
@@ -27,6 +56,7 @@ export default function CardDetail({ card, onClose }) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Card Image */}
             <div className="relative aspect-[2.5/3.5] bg-gray-800 rounded-lg">
               {getCardImage(card, "large") ? (
                 <Image
@@ -43,6 +73,7 @@ export default function CardDetail({ card, onClose }) {
               )}
             </div>
 
+            {/* Details & Pricing */}
             <div className="space-y-4">
               <div>
                 <h3 className="text-lg font-semibold text-white mb-3">
@@ -101,55 +132,69 @@ export default function CardDetail({ card, onClose }) {
                 </div>
               </div>
 
-              {card.pricing && (card.pricing.avg30 || card.pricing.trend) && (
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">
-                    Cardmarket Pricing
-                  </h3>
+              {/* Cardmarket Pricing */}
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-3">
+                  Cardmarket Pricing
+                </h3>
+                {loadingPricing ? (
+                  <div className="space-y-2 animate-pulse">
+                    {[...Array(5)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-4 bg-gray-700 rounded w-3/4 mx-auto"
+                      />
+                    ))}
+                  </div>
+                ) : pricing && (pricing.avg30 || pricing.trend) ? (
                   <div className="space-y-2 text-sm">
-                    {card.pricing.avg30 && (
+                    {pricing.avg30 && (
                       <div className="flex justify-between">
-                        <span className="text-gray-400">30-Day Average</span>
+                        <span className="text-gray-400">30-Day Avg</span>
                         <span className="text-green-400 font-semibold">
-                          €{formatPrice(card.pricing.avg30)}
+                          €{formatPrice(pricing.avg30)}
                         </span>
                       </div>
                     )}
-                    {card.pricing.trend && (
+                    {pricing.trend && (
                       <div className="flex justify-between">
                         <span className="text-gray-400">Trend Price</span>
                         <span className="text-blue-400 font-semibold">
-                          €{formatPrice(card.pricing.trend)}
+                          €{formatPrice(pricing.trend)}
                         </span>
                       </div>
                     )}
-                    {card.pricing.avg1 && (
+                    {pricing.avg1 && (
                       <div className="flex justify-between">
-                        <span className="text-gray-400">1-Day Average</span>
+                        <span className="text-gray-400">1-Day Avg</span>
                         <span className="text-white">
-                          €{formatPrice(card.pricing.avg1)}
+                          €{formatPrice(pricing.avg1)}
                         </span>
                       </div>
                     )}
-                    {card.pricing.avg7 && (
+                    {pricing.avg7 && (
                       <div className="flex justify-between">
-                        <span className="text-gray-400">7-Day Average</span>
+                        <span className="text-gray-400">7-Day Avg</span>
                         <span className="text-white">
-                          €{formatPrice(card.pricing.avg7)}
+                          €{formatPrice(pricing.avg7)}
                         </span>
                       </div>
                     )}
-                    {card.pricing.low && (
+                    {pricing.low && (
                       <div className="flex justify-between">
-                        <span className="text-gray-400">Lowest Price</span>
+                        <span className="text-gray-400">Lowest</span>
                         <span className="text-white">
-                          €{formatPrice(card.pricing.low)}
+                          €{formatPrice(pricing.low)}
                         </span>
                       </div>
                     )}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-gray-500 text-sm">
+                    No pricing data available
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
