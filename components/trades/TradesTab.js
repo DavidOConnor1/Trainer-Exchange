@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTrades } from "../../hooks/v2/useTrades";
 import EventDetail from "./EventDetail";
-
+import EditableEventName from "./EditableEventName";
 export default function TradesTab() {
   const router = useRouter();
   const { events, loading, error, createEvent, deleteEvent } = useTrades();
@@ -96,7 +96,7 @@ export default function TradesTab() {
               key={event.id}
               className="bg-gray-800 p-4 rounded-lg border border-gray-700"
             >
-              <h3 className="text-white font-semibold">{event.name}</h3>
+              <EditableEventName event={event} />
               <p className="text-gray-400 text-sm">
                 {new Date(event.event_date + "T00:00:00").toLocaleDateString(
                   "en-GB",

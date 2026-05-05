@@ -1,10 +1,11 @@
 // components/trades/EventDetail.js
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useTrades } from "../../hooks/v2/useTrades";
 import Image from "next/image";
-
+import SaveToCollectionButton from "./SaveToCollectionButton";
+import EditableEventName from "./EditableEventName";
 export default function EventDetail({ event, onBack }) {
   const {
     sessions,
@@ -13,6 +14,7 @@ export default function EventDetail({ event, onBack }) {
     fetchSessions,
     updateTradeItem,
     deleteTradeItem,
+    deleteSession,
     clearSessions,
   } = useTrades();
 
@@ -55,7 +57,7 @@ export default function EventDetail({ event, onBack }) {
           >
             ← Back to Events
           </button>
-          <h2 className="text-2xl font-bold text-white">{event.name}</h2>
+          <EditableEventName event={event} className="text-2xl font-bold" />
           <p className="text-gray-400 text-sm">
             {new Date(event.event_date + "T00:00:00").toLocaleDateString(
               "en-GB",
@@ -76,6 +78,9 @@ export default function EventDetail({ event, onBack }) {
           positive={profit >= 0}
         />
       </div>
+
+      {/* Save to Collection button */}
+      <SaveToCollectionButton event={event} />
 
       {/* Sessions List */}
       {sessionsLoading ? (
@@ -101,6 +106,13 @@ export default function EventDetail({ event, onBack }) {
                 <span className="text-gray-400 text-xs">
                   {new Date(session.created_at).toLocaleString()}
                 </span>
+                <button
+                  onClick={() => deleteSession(event.id, session.id)}
+                  className="text-red-500 hover:text-red-300 text-sm font-bold"
+                  title="Delete entire session"
+                >
+                  ✕
+                </button>
               </div>
 
               {session.trade_items?.length > 0 ? (

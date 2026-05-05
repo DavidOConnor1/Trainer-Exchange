@@ -3,6 +3,7 @@
 
 import { create } from "zustand";
 import { supabase } from "../lib/supabase/api";
+import { convertEventToCollection as convertEvent } from "../lib/trade/convertEventToCollection";
 
 const useTradeStore = create((set, get) => ({
   // ----- Events -----
@@ -124,6 +125,25 @@ const useTradeStore = create((set, get) => ({
     return session;
   },
 
+  updateEventName: async (eventId, newName) => {
+    const { data, error } = await supabase
+      .from("trade_events")
+      .update({ name: newName })
+      .eq("id", eventId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    set((state) => ({
+      events: state.events.map((e) =>
+        e.id === eventId ? { ...e, name: newName } : e,
+      ),
+    }));
+
+    return data;
+  },
+
   deleteEvent: async (eventId) => {
     const { error } = await supabase
       .from("trade_events")
@@ -222,6 +242,36 @@ const useTradeStore = create((set, get) => ({
     if (error) throw error;
     set((state) => ({ sessions: [...state.sessions, data] }));
     return data;
+  },
+
+  deleteSession: async (eventId, sessionId) => {
+    // Delete session (cascades to trade_items via FK constraint)
+    const { error } = await supabase
+      .from("trade_sessions")
+      .delete()
+      .eq("id", sessionId);
+
+    if (error) throw error;
+
+    // Remove the session from local state
+    set((state) => ({
+      sessions: state.sessions.filter((session) => session.id !== sessionId),
+    }));
+  },
+
+  // ----- converts an event list into a collection -----
+
+  convertEventToCollection: async (eventId, collectionName, userId) => {
+    const collection = await convertEvent(eventId, collectionName, userId);
+
+    // Update local state to reflect the conversion
+    set((state) => ({
+      events: state.events.map((e) =>
+        e.id === eventId ? { ...e, converted_to_collection: true } : e,
+      ),
+    }));
+
+    return collection;
   },
 
   clearSessions: () =>
