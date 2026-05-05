@@ -224,9 +224,6 @@ function CollectionView({ collection, onClose }) {
     return null;
   };
 
-  // Rest of your hooks and functions...
-  // (keep testApiConnection, extractCardsFromResponse, searchPokemonCards, etc.)
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
       <div className="bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -251,7 +248,7 @@ function CollectionView({ collection, onClose }) {
                       key={card.id || Math.random()}
                       className="bg-gray-900 p-3 rounded-lg border border-gray-700 hover:border-blue-500 transition"
                     >
-                      {/* Card Image - FIXED */}
+                      {/* Card Image */}
                       <div className="relative w-full h-32 mb-2 bg-gray-800 rounded flex items-center justify-center">
                         {imageUrl ? (
                           <Image
@@ -322,7 +319,7 @@ function CollectionView({ collection, onClose }) {
             </div>
           )}
 
-          {/* Existing Cards in Collection - FIXED IMAGE HANDLING */}
+          {/* Existing Cards in Collection */}
           {loading ? (
             <div className="text-center text-gray-400 py-8">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-2"></div>
@@ -345,7 +342,7 @@ function CollectionView({ collection, onClose }) {
                     key={card.id}
                     className="bg-gray-800 rounded-lg p-4 border border-gray-700"
                   >
-                    {/* Card Image - FIXED */}
+                    {/* Card Image */}
                     <div className="relative w-full h-32 mb-3 bg-gray-700 rounded flex items-center justify-center">
                       {imageUrl ? (
                         <Image

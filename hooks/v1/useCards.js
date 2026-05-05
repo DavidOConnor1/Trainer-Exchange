@@ -24,7 +24,7 @@ export function useCards(collectionId) {
 
       // Check if table exists first
       const { data: tableCheck, error: tableError } = await supabase
-        .from("collection_cards")
+        .from("cards")
         .select("count", { count: "exact", head: true });
 
       if (tableError) {
@@ -36,7 +36,7 @@ export function useCards(collectionId) {
       }
 
       const { data, error } = await supabase
-        .from("collection_cards")
+        .from("cards")
         .select("*")
         .eq("collection_id", collectionId)
         .order("created_at", { ascending: false });
@@ -93,7 +93,7 @@ export function useCards(collectionId) {
         console.log("Adding card:", cardToAdd); // Debug log
 
         const { data, error } = await supabase
-          .from("collection_cards")
+          .from("cards")
           .insert(cardToAdd)
           .select()
           .single();
@@ -134,7 +134,7 @@ export function useCards(collectionId) {
         }
 
         const { error } = await supabase
-          .from("collection_cards")
+          .from("cards")
           .delete()
           .eq("id", cardId);
 

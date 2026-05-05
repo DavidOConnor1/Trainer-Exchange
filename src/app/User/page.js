@@ -232,7 +232,7 @@ export default function UsersPage() {
               </h3>
             </div>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              $
+              €
               {loadingStats
                 ? "..."
                 : totalCollectionsValue.toLocaleString(undefined, {
@@ -327,7 +327,7 @@ export default function UsersPage() {
                             {stats.card_count === 1 ? "card" : "cards"}
                           </p>
                           <p className="text-xs font-medium text-green-600 dark:text-green-400">
-                            $
+                            €
                             {stats.total_value.toLocaleString(undefined, {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,

@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { getCardImage, formatPrice } from "../../lib/pokemonApi/searchService";
+import AddToCollectionButton from "./AddToCollectionButton";
 
 export default function CardDetail({ card, onClose }) {
   const [pricing, setPricing] = useState(null);
@@ -198,7 +199,8 @@ export default function CardDetail({ card, onClose }) {
             </div>
           </div>
 
-          <div className="mt-4 pt-4 border-t border-gray-700">
+          <div className="mt-4 pt-4 border-t border-gray-700 space-y-3">
+            <AddToCollectionButton card={card} pricing={pricing} />
             <p className="text-gray-500 text-xs font-mono">ID: {card.id}</p>
           </div>
         </div>
