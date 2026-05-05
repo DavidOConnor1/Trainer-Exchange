@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useTrades } from "../../hooks/v2/useTrades";
+import Image from "next/image";
 
 export default function EventDetail({ event, onBack }) {
   const {
@@ -10,41 +11,35 @@ export default function EventDetail({ event, onBack }) {
     sessionsLoading,
     sessionsError,
     fetchSessions,
-    createSession,
+    updateTradeItem,
+    deleteTradeItem,
     clearSessions,
   } = useTrades();
 
-  const [showAddSession, setShowAddSession] = useState(false);
-  const [sessionName, setSessionName] = useState("");
-
   useEffect(() => {
-    if (event?.id) {
-      fetchSessions(event.id);
-    }
+    if (event?.id) fetchSessions(event.id);
     return () => clearSessions();
-  }, [event?.id, fetchSessions, clearSessions]);
+  }, [event.id, fetchSessions, clearSessions]);
 
-  const handleCreateSession = async (e) => {
-    e.preventDefault();
-    try {
-      await createSession(event.id, sessionName || undefined);
-      setSessionName("");
-      setShowAddSession(false);
-    } catch (err) {
-      console.error("Failed to create session:", err);
-    }
+  // inline update handler
+  const handleItemUpdate = (sessionId, itemId, field, value) => {
+    updateTradeItem(sessionId, itemId, { [field]: value });
   };
 
-  // Calculate stats from items in all sessions
+  const handleItemDelete = (sessionId, itemId) => {
+    deleteTradeItem(sessionId, itemId);
+  };
+
+  // stats
   const allItems = sessions.flatMap((s) => s.trade_items || []);
   const tradedIn = allItems.filter((i) => i.direction === "in");
   const tradedOut = allItems.filter((i) => i.direction === "out");
   const totalIn = tradedIn.reduce(
-    (sum, i) => sum + Number(i.trade_price) * i.quantity,
+    (s, i) => s + Number(i.trade_price) * i.quantity,
     0,
   );
   const totalOut = tradedOut.reduce(
-    (sum, i) => sum + Number(i.trade_price) * i.quantity,
+    (s, i) => s + Number(i.trade_price) * i.quantity,
     0,
   );
   const profit = totalIn - totalOut;
@@ -67,12 +62,6 @@ export default function EventDetail({ event, onBack }) {
             )}
           </p>
         </div>
-        <button
-          onClick={() => setShowAddSession(!showAddSession)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          + Add Session
-        </button>
       </div>
 
       {/* Stats */}
@@ -88,35 +77,6 @@ export default function EventDetail({ event, onBack }) {
         />
       </div>
 
-      {/* Add Session Form */}
-      {showAddSession && (
-        <form
-          onSubmit={handleCreateSession}
-          className="p-4 bg-gray-800 rounded-lg"
-        >
-          <div className="flex gap-4 items-end">
-            <div className="flex-1">
-              <label className="block text-sm text-gray-400 mb-1">
-                Session Name (optional)
-              </label>
-              <input
-                type="text"
-                value={sessionName}
-                onChange={(e) => setSessionName(e.target.value)}
-                placeholder="e.g., Trade @ 11am"
-                className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white"
-              />
-            </div>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              Create
-            </button>
-          </div>
-        </form>
-      )}
-
       {/* Sessions List */}
       {sessionsLoading ? (
         <div className="text-center py-8 text-gray-400">
@@ -125,17 +85,15 @@ export default function EventDetail({ event, onBack }) {
       ) : sessionsError ? (
         <div className="text-red-400">{sessionsError}</div>
       ) : sessions.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          No sessions yet. Click "+ Add Session" to start.
-        </div>
+        <div className="text-center py-8 text-gray-500">No sessions yet.</div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {sessions.map((session) => (
             <div
               key={session.id}
               className="bg-gray-800 rounded-lg border border-gray-700 p-4"
             >
-              <div className="flex justify-between items-center mb-2">
+              <div className="flex justify-between items-center mb-3">
                 <h3 className="text-white font-semibold">
                   {session.name ||
                     new Date(session.created_at).toLocaleTimeString()}
@@ -145,31 +103,82 @@ export default function EventDetail({ event, onBack }) {
                 </span>
               </div>
 
-              {/* Items summary */}
               {session.trade_items?.length > 0 ? (
-                <div className="text-sm text-gray-400">
-                  {
-                    session.trade_items.filter((i) => i.direction === "in")
-                      .length
-                  }{" "}
-                  in /{" "}
-                  {
-                    session.trade_items.filter((i) => i.direction === "out")
-                      .length
-                  }{" "}
-                  out
+                <div className="space-y-3">
+                  {session.trade_items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="bg-gray-700 rounded p-3 flex items-center gap-3"
+                    >
+                      {item.image_url?.startsWith("https://") && (
+                        <Image
+                          src={item.image_url}
+                          alt={item.name}
+                          width={48}
+                          height={67}
+                          className="object-contain"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm truncate">
+                          {item.name}
+                        </p>
+                        <p className="text-gray-400 text-xs truncate">
+                          {item.set_name}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <label className="text-gray-500 text-xs">
+                            Price €
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={item.trade_price}
+                            onChange={(e) =>
+                              handleItemUpdate(
+                                session.id,
+                                item.id,
+                                "trade_price",
+                                parseFloat(e.target.value) || 0,
+                              )
+                            }
+                            className="w-20 px-2 py-0.5 bg-gray-900 border border-gray-600 rounded text-white text-xs"
+                          />
+                          <label className="text-gray-500 text-xs">Qty</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) =>
+                              handleItemUpdate(
+                                session.id,
+                                item.id,
+                                "quantity",
+                                parseInt(e.target.value) || 1,
+                              )
+                            }
+                            className="w-16 px-2 py-0.5 bg-gray-900 border border-gray-600 rounded text-white text-xs"
+                          />
+                          <span
+                            className={`ml-2 text-xs font-semibold ${item.direction === "in" ? "text-green-400" : "text-red-400"}`}
+                          >
+                            {item.direction === "in" ? "In" : "Out"}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleItemDelete(session.id, item.id)}
+                        className="text-red-400 hover:text-red-300 text-sm"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
                 </div>
               ) : (
-                <p className="text-gray-500 text-sm">No items yet</p>
+                <p className="text-gray-500 text-sm">No items</p>
               )}
-
-              {/* Placeholder for future item management */}
-              <button
-                className="mt-2 text-blue-400 text-sm hover:underline"
-                onClick={() => alert("Item management coming soon!")}
-              >
-                Manage Items
-              </button>
             </div>
           ))}
         </div>
@@ -178,7 +187,6 @@ export default function EventDetail({ event, onBack }) {
   );
 }
 
-// Helper sub-component
 function StatCard({ label, value, positive }) {
   return (
     <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">

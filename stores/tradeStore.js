@@ -11,17 +11,24 @@ const useTradeStore = create((set, get) => ({
   error: null,
   initialized: false,
 
-  fetchEvents: async (userId) => {
-    if (!userId) return;
+  fetchEvents: async (userId, includeExpired = false) => {
+    if (!userId) {
+      set({ loading: false, initialized: true });
+      return;
+    }
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("trade_events")
         .select("*")
         .eq("user_id", userId)
-        .gte("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false });
 
+      if (!includeExpired) {
+        query = query.gte("expires_at", new Date().toISOString());
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       set({ events: data || [], loading: false, initialized: true });
     } catch (err) {
@@ -127,6 +134,56 @@ const useTradeStore = create((set, get) => ({
     set((state) => ({
       events: state.events.filter((e) => e.id !== eventId),
     }));
+  },
+
+  // ----- Trade Items -----
+
+  deleteTradeItem: async (sessionId, itemId) => {
+    const { error } = await supabase
+      .from("trade_items")
+      .delete()
+      .eq("id", itemId);
+
+    if (error) throw error;
+
+    set((state) => ({
+      sessions: state.sessions.map((session) =>
+        session.id === sessionId
+          ? {
+              ...session,
+              trade_items: (session.trade_items || []).filter(
+                (item) => item.id !== itemId,
+              ),
+            }
+          : session,
+      ),
+    }));
+  },
+
+  updateTradeItem: async (sessionId, itemId, updates) => {
+    const { data, error } = await supabase
+      .from("trade_items")
+      .update(updates)
+      .eq("id", itemId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    set((state) => ({
+      sessions: state.sessions.map((session) =>
+        session.id === sessionId
+          ? {
+              ...session,
+              trade_items: (session.trade_items || []).map((item) =>
+                item.id === itemId ? { ...item, ...data } : item,
+              ),
+            }
+          : session,
+      ),
+    }));
+
+    return data;
   },
 
   // ----- Sessions -----

@@ -1,4 +1,3 @@
-// hooks/v2/useTrades.js
 "use client";
 
 import { useCallback, useEffect } from "react";
@@ -10,7 +9,6 @@ export function useTrades() {
   const userId = user?.id;
 
   const {
-    // Events
     events,
     loading,
     error,
@@ -20,7 +18,6 @@ export function useTrades() {
     deleteEvent,
     findOrCreateLatestEvent,
 
-    // Sessions
     sessions,
     sessionsLoading,
     sessionsError,
@@ -28,6 +25,9 @@ export function useTrades() {
     createSession,
     createTradeSession,
     clearSessions,
+
+    updateTradeItem,
+    deleteTradeItem,
   } = useTradeStore();
 
   // Load events when user changes
@@ -37,7 +37,7 @@ export function useTrades() {
     }
   }, [userId, fetchEvents]);
 
-  // Wrappers
+  // wrappers
   const handleCreateEvent = useCallback(
     async (name, eventDate) => {
       if (!userId) throw new Error("Not authenticated");
@@ -80,6 +80,28 @@ export function useTrades() {
     [createTradeSession],
   );
 
+  const handleUpdateTradeItem = useCallback(
+    async (sessionId, itemId, updates) => {
+      return updateTradeItem(sessionId, itemId, updates);
+    },
+    [updateTradeItem],
+  );
+
+  const handleDeleteTradeItem = useCallback(
+    async (sessionId, itemId) => {
+      return deleteTradeItem(sessionId, itemId);
+    },
+    [deleteTradeItem],
+  );
+
+  const handleFetchEvents = useCallback(
+    async (includeExpired = false) => {
+      // Always call the store function – it handles the null-user case internally
+      await fetchEvents(userId, includeExpired);
+    },
+    [userId, fetchEvents],
+  );
+
   return {
     events,
     loading,
@@ -87,13 +109,20 @@ export function useTrades() {
     initialized,
     createEvent: handleCreateEvent,
     deleteEvent: handleDeleteEvent,
+
     sessions,
     sessionsLoading,
     sessionsError,
     fetchSessions: handleFetchSessions,
     createSession: handleCreateSession,
     clearSessions,
+
     findOrCreateEvent: handleFindOrCreateEvent,
     createTradeSession: handleCreateTradeSession,
+
+    updateTradeItem: handleUpdateTradeItem,
+    deleteTradeItem: handleDeleteTradeItem,
+
+    fetchEvents: handleFetchEvents,
   };
 }
