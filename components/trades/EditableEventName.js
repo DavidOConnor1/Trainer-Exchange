@@ -23,6 +23,13 @@ export default function EditableEventName({ event, className = "" }) {
 
   const handleSave = async () => {
     const trimmed = name.trim();
+
+    //will not accept empty names
+    if (!trimmed) {
+      setName(event.name);
+      setEditing(false);
+      return;
+    }
     if (trimmed && trimmed !== event.name) {
       try {
         await updateEventName(event.id, trimmed);

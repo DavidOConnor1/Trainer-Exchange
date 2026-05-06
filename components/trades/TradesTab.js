@@ -114,7 +114,15 @@ export default function TradesTab() {
                   View Sessions
                 </button>
                 <button
-                  onClick={() => deleteEvent(event.id)}
+                  onClick={() => {
+                    if (
+                      confirm(
+                        "Delete this event and all its sessions? This cannot be undone.",
+                      )
+                    ) {
+                      deleteEvent(event.id);
+                    }
+                  }}
                   className="text-red-400 text-sm hover:underline"
                 >
                   Delete

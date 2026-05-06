@@ -176,6 +176,15 @@ export function useTradeSession() {
       alert("Add at least one card.");
       return;
     }
+
+    if (
+      !confirm(
+        "Save this trade? Cards traded out will be removed from your collection.",
+      )
+    ) {
+      return;
+    }
+
     setCompleting(true);
     try {
       const event = await findOrCreateEvent();

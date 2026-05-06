@@ -3,6 +3,7 @@
 import { useCallback, useEffect } from "react";
 import useTradeStore from "../../stores/tradeStore";
 import { useAuth } from "../../auth/hooks/useAuth";
+import securityService from "../../lib/security";
 
 export function useTrades() {
   const { user } = useAuth();
@@ -46,7 +47,11 @@ export function useTrades() {
   const handleCreateEvent = useCallback(
     async (name, eventDate) => {
       if (!userId) throw new Error("Not authenticated");
-      return createEvent(userId, name, eventDate);
+      const sanitizedName = securityService.sanitizeText(name, 100);
+      if (!sanitizedName || sanitizedName.trim() === "") {
+        throw new Error("Event name is required");
+      }
+      return createEvent(userId, sanitizedName, eventDate);
     },
     [userId, createEvent],
   );

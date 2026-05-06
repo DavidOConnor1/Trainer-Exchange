@@ -29,7 +29,14 @@ export default function EventDetail({ event, onBack }) {
   };
 
   const handleItemDelete = (sessionId, itemId) => {
+    if (!confirm("Remove this card from the trade session?")) return;
     deleteTradeItem(sessionId, itemId);
+  };
+
+  const handleDeleteSession = (eventId, sessionId) => {
+    if (!confirm("Delete this entire session? All cards in it will be lost."))
+      return;
+    deleteSession(eventId, sessionId);
   };
 
   // stats
@@ -107,7 +114,7 @@ export default function EventDetail({ event, onBack }) {
                   {new Date(session.created_at).toLocaleString()}
                 </span>
                 <button
-                  onClick={() => deleteSession(event.id, session.id)}
+                  onClick={() => handleDeleteSession(event.id, session.id)}
                   className="text-red-500 hover:text-red-300 text-sm font-bold"
                   title="Delete entire session"
                 >

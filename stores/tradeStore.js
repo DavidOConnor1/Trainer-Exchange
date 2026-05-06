@@ -4,6 +4,7 @@
 import { create } from "zustand";
 import { supabase } from "../lib/supabase/api";
 import { convertEventToCollection as convertEvent } from "../lib/trade/convertEventToCollection";
+import securityService from "../lib/security";
 
 const useTradeStore = create((set, get) => ({
   // ----- Events -----
@@ -40,6 +41,12 @@ const useTradeStore = create((set, get) => ({
   createEvent: async (userId, name, eventDate) => {
     if (!userId) throw new Error("User not authenticated");
 
+    //will sanitize input
+    const sanitizedName = securityService.sanitizeText(name, 100);
+    if (!sanitizedName || sanitizedName.trim() === "") {
+      throw new Error("Collection name is required");
+    }
+
     const expiresAt = new Date(
       Date.now() + 60 * 24 * 60 * 60 * 1000,
     ).toISOString();
@@ -48,7 +55,7 @@ const useTradeStore = create((set, get) => ({
       .from("trade_events")
       .insert({
         user_id: userId,
-        name,
+        name: sanitizedName,
         event_date: eventDate,
         expires_at: expiresAt,
       })
@@ -126,9 +133,15 @@ const useTradeStore = create((set, get) => ({
   },
 
   updateEventName: async (eventId, newName) => {
+    //will sanitize input
+    const sanitizedName = securityService.sanitizeText(newName, 100);
+    if (!sanitizedName || sanitizedName.trim() === "") {
+      throw new Error("Event name cannot be empty");
+    }
+
     const { data, error } = await supabase
       .from("trade_events")
-      .update({ name: newName })
+      .update({ name: sanitizedName })
       .eq("id", eventId)
       .select()
       .single();
@@ -137,7 +150,7 @@ const useTradeStore = create((set, get) => ({
 
     set((state) => ({
       events: state.events.map((e) =>
-        e.id === eventId ? { ...e, name: newName } : e,
+        e.id === eventId ? { ...e, name: sanitizedName } : e,
       ),
     }));
 

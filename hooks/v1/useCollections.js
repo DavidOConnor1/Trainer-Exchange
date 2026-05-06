@@ -70,6 +70,7 @@ export function useCollections() {
   const deleteCollection = useCallback(
     async (collectionId) => {
       if (!userId) throw new Error("User not authenticated");
+      if (!confirm("Delete this collection and all cards in it?")) return;
 
       try {
         await storeDeleteCollection(collectionId, userId);

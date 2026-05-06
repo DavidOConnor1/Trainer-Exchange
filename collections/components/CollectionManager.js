@@ -227,12 +227,32 @@ function CollectionView({ collection, onClose }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
       <div className="bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header - keep as is */}
+        <div className="p-6 border-b border-gray-700 flex justify-between items-center sticky top-0 bg-gray-900 z-10">
+          <div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white text-sm mb-1 flex items-center gap-1"
+            >
+              <span className="text-lg">←</span> Back to Collections
+            </button>
+            <h2 className="text-2xl font-bold text-white">{collection.name}</h2>
+            <p className="text-gray-400 mt-1">
+              Total Value:{" "}
+              <span className="text-green-400 font-semibold">
+                €{totalValue.toFixed(2)}
+              </span>
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white text-xl md:hidden"
+          >
+            ✕
+          </button>
+        </div>
 
         <div className="p-6">
-          {/* ... existing code ... */}
-
-          {/* Search Results - FIXED IMAGE HANDLING */}
+          {/* Search Results */}
           {!searchingCards && searchResults.length > 0 && (
             <div>
               <p className="text-sm text-gray-400 mb-3">
@@ -403,10 +423,16 @@ function CollectionView({ collection, onClose }) {
                       </p>
                     )}
                     <button
-                      onClick={() => deleteCard(card.id)}
-                      className="mt-3 w-full px-2 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition"
+                      onClick={() => {
+                        if (
+                          confirm("Delete this collection and all cards in it?")
+                        ) {
+                          onDelete();
+                        }
+                      }}
+                      className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
                     >
-                      Remove
+                      Delete
                     </button>
                   </div>
                 );
