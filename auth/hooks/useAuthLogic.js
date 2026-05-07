@@ -11,6 +11,9 @@ export const useAuthLogic = () => {
   const [attempts, setAttempts] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [needsMfa, setNeedsMfa] = useState(false);
+  const [mfaFactorId, setMfaFactorId] = useState(null);
 
   // Create rate limiters for different actions
   const loginRateLimiter = securityService.getRateLimiter(
@@ -85,26 +88,33 @@ export const useAuthLogic = () => {
       return false;
     }
 
+    // Check if email confirmation is required
+    if (data?.user?.identities?.length === 0) {
+      signupRateLimiter.clear(identifier);
+      setName("");
+      setEmail("");
+      setPassword("");
+      setErrorMessage("");
+      return { needsVerification: true, email: sanitizedEmail };
+    }
+
     const success = !!data?.user;
     if (success) {
       signupRateLimiter.clear(identifier);
-      // Clear form on success
       setName("");
       setEmail("");
       setPassword("");
       setErrorMessage("");
     }
 
-    console.log("Sign up successful! Check your email to confirm.", data);
+    console.log("Sign up successful!", data);
     return success;
   };
 
   // Handle sign in
   const handleSignIn = async (sanitizedEmail, sanitizedPassword) => {
-    // Add timing prevention to obscure response time
     await securityService.timingPrevention(attempts);
 
-    // Check rate limit for login
     const identifier = sanitizedEmail;
     if (!loginRateLimiter.canProceed(identifier)) {
       setErrorMessage("Too many login attempts. Please wait 15 minutes.");
@@ -121,33 +131,35 @@ export const useAuthLogic = () => {
     );
 
     if (signInError) {
-      // Use timing-safe error message (don't reveal if email exists)
       setErrorMessage("Invalid email or password");
-      console.error("Sign in error:", signInError.message);
       return false;
     }
 
-    const success = !!data?.user;
-    if (success) {
-      loginRateLimiter.clear(identifier);
-      setEmail("");
-      setPassword("");
-      setAttempts(0);
-      setErrorMessage("");
+    if (data?.session === null && data?.user) {
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const totpFactor = factors?.totp?.[0];
+
+      if (totpFactor) {
+        return { needsMfa: true, factorId: totpFactor.id };
+      }
     }
 
-    console.log("Sign in successful!", data);
-    return success;
+    loginRateLimiter.clear(identifier);
+    setEmail("");
+    setPassword("");
+    setAttempts(0);
+    setErrorMessage("");
+    return true;
   };
 
   // Main submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage("");
+    setVerificationSent(false);
     setLoading(true);
 
     try {
-      // Validate and sanitize inputs
       const sanitized = validateAndSanitizeInputs();
       if (!sanitized) {
         setLoading(false);
@@ -156,18 +168,31 @@ export const useAuthLogic = () => {
 
       const { sanitizedName, sanitizedEmail, sanitizedPassword } = sanitized;
 
-      let success = false;
       if (isSignUp) {
-        success = await handleSignUp(
+        const result = await handleSignUp(
           sanitizedName,
           sanitizedEmail,
           sanitizedPassword,
         );
-      } else {
-        success = await handleSignIn(sanitizedEmail, sanitizedPassword);
-      }
 
-      return success;
+        if (result?.needsVerification) {
+          setVerificationSent(true);
+          setErrorMessage("");
+        }
+
+        return result;
+      } else {
+        const result = await handleSignIn(sanitizedEmail, sanitizedPassword);
+
+        if (result?.needsMfa) {
+          setNeedsMfa(true);
+          setMfaFactorId(result.factorId);
+          setLoading(false);
+          return;
+        }
+
+        return result;
+      }
     } catch (error) {
       console.error("Auth error:", error);
       setErrorMessage("An unexpected error occurred. Please try again.");
@@ -192,6 +217,9 @@ export const useAuthLogic = () => {
     loading,
     errorMessage,
     attempts,
+    verificationSent,
+    needsMfa,
+    mfaFactorId,
 
     // Setters
     setName,
