@@ -1,14 +1,25 @@
+// auth/hooks/useAuth.js
 "use client";
 import { supabase } from "../../lib/supabase/api";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 export function useAuth() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [needsMfa, setNeedsMfa] = useState(false);
+  const [mfaFactorId, setMfaFactorId] = useState(null);
   const inactivityTimerRef = useRef(null);
+  const fetchingRef = useRef(false); // prevent overlapping fetches
+  const mountedRef = useRef(true); // ignore state updates after unmount
 
-  // Fetch current session
-  const fetchSession = async () => {
+  // Derived: user is only considered fully authenticated when MFA is NOT required
+  const isAuthenticated = !!user && !needsMfa;
+
+  // Fetch current session and check MFA status
+  const fetchSession = useCallback(async () => {
+    if (fetchingRef.current) return; // already in progress
+    fetchingRef.current = true;
+
     try {
       const {
         data: { session },
@@ -17,100 +28,166 @@ export function useAuth() {
 
       if (error) throw error;
 
-      // Check if session exists and isn't expired
-      if (session && session.expires_at) {
-        const isExpired = session.expires_at * 1000 < Date.now();
-        if (isExpired) {
-          await supabase.auth.signOut();
-          setUser(null);
-        } else {
+      if (session) {
+        // Session exists – now check if MFA is required
+        const { data: aalData } =
+          await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+        if (
+          aalData?.nextLevel === "aal2" &&
+          aalData.currentLevel !== aalData.nextLevel
+        ) {
+          const { data: factors } = await supabase.auth.mfa.listFactors();
+          const totpFactor = factors?.totp?.[0];
+          if (totpFactor && mountedRef.current) {
+            setUser(session.user);
+            setNeedsMfa(true);
+            setMfaFactorId(totpFactor.id);
+            setLoading(false);
+            return;
+          }
+        }
+
+        // No MFA required
+        if (mountedRef.current) {
           setUser(session.user);
+          setNeedsMfa(false);
+          setMfaFactorId(null);
+          setLoading(false);
         }
       } else {
-        setUser(null);
+        if (mountedRef.current) {
+          setUser(null);
+          setNeedsMfa(false);
+          setMfaFactorId(null);
+          setLoading(false);
+        }
       }
     } catch (error) {
       console.error("Error fetching session:", error);
-      setUser(null);
+      if (mountedRef.current) {
+        setUser(null);
+        setNeedsMfa(false);
+        setMfaFactorId(null);
+        setLoading(false);
+      }
     } finally {
-      setLoading(false);
+      fetchingRef.current = false;
     }
-  };
+  }, []);
 
   // Flush session on inactivity
   const flushSession = async () => {
     try {
       await supabase.auth.signOut();
-      setUser(null);
-      console.log("Session flushed due to inactivity");
+      if (mountedRef.current) {
+        setUser(null);
+        setNeedsMfa(false);
+        setMfaFactorId(null);
+      }
     } catch (error) {
       console.error("Error flushing session:", error);
     }
   };
 
   // Reset inactivity timer
-  const resetInactivityTimer = () => {
-    if (inactivityTimerRef.current) {
-      clearTimeout(inactivityTimerRef.current);
-    }
-
+  const resetInactivityTimer = useCallback(() => {
+    if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
     if (user) {
       inactivityTimerRef.current = setTimeout(
         () => {
           flushSession();
         },
         15 * 60 * 1000,
-      ); // 15 minutes
+      );
     }
-  };
+  }, [user]);
 
+  // Run once on mount, and listen for auth state changes
   useEffect(() => {
-    fetchSession();
+    mountedRef.current = true;
+    fetchSession(); // initial fetch
 
-    // Listen for auth state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        resetInactivityTimer();
-      } else if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current);
+      // Whenever auth state changes (e.g., after MFA verification), re‑fetch
+      if (mountedRef.current) {
+        fetchSession();
       }
     });
 
-    // Set up activity listeners for inactivity timeout
+    return () => {
+      mountedRef.current = false;
+      subscription.unsubscribe();
+      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+    };
+  }, [fetchSession]); // only depends on fetchSession (stable)
+
+  // Activity listeners for inactivity timeout (unchanged)
+  useEffect(() => {
     const events = ["mousedown", "keydown", "scroll", "touchstart", "click"];
     const handleUserActivity = () => {
       if (user) resetInactivityTimer();
     };
-
     events.forEach((event) =>
       window.addEventListener(event, handleUserActivity),
     );
-
-    // Start timer if user is logged in
-    if (user) resetInactivityTimer();
-
-    // Cleanup
     return () => {
-      subscription.unsubscribe();
       events.forEach((event) =>
         window.removeEventListener(event, handleUserActivity),
       );
-      if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current);
-      }
     };
-  }, [user]); // Re-run when user changes
+  }, [user, resetInactivityTimer]);
 
+  // Sign out
   const signOut = async () => {
-    if (inactivityTimerRef.current) {
-      clearTimeout(inactivityTimerRef.current);
-    }
+    if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
     await supabase.auth.signOut();
-    setUser(null);
+    if (mountedRef.current) {
+      setUser(null);
+      setNeedsMfa(false);
+      setMfaFactorId(null);
+    }
   };
 
-  return { user, loading, signOut };
-} //end useAuth
+  // Complete MFA challenge
+  const completeMfaChallenge = async (code) => {
+    if (!mfaFactorId || !code) return false;
+    try {
+      const { data: challengeData, error: challengeError } =
+        await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
+      if (challengeError) throw challengeError;
+
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: challengeData.id,
+        code,
+      });
+      if (verifyError) throw verifyError;
+
+      await supabase.auth.refreshSession();
+      // onAuthStateChange will trigger fetchSession automatically,
+      // which will update the state.
+      return true;
+    } catch (error) {
+      console.error("MFA verification failed:", error);
+      return false;
+    }
+  };
+
+  const cancelMfa = () => {
+    signOut();
+  };
+
+  return {
+    user,
+    loading,
+    isAuthenticated,
+    needsMfa,
+    mfaFactorId,
+    completeMfaChallenge,
+    cancelMfa,
+    signOut,
+  };
+}

@@ -45,6 +45,13 @@ export default function UsersSettingsPage() {
     setShowEnrollment,
     disableMfa,
     onEnrollmentComplete,
+    checkMfaStatus,
+    checkingMfa,
+    mfaChecked,
+    mfaMessage,
+    verifyDisableMfa,
+    showDisableChallenge,
+    setShowDisableChallenge,
   } = useMfa(user ?? undefined);
 
   // ---- Profile update hook ----
@@ -151,8 +158,15 @@ export default function UsersSettingsPage() {
             {/* Security section */}
             <SecuritySection
               mfaEnabled={mfaEnabled}
+              mfaChecked={mfaChecked}
+              checkingMfa={checkingMfa}
+              onCheckMfa={checkMfaStatus}
               onEnable={() => setShowEnrollment(true)}
               onDisable={disableMfa}
+              mfaMessage={mfaMessage}
+              showDisableChallenge={showDisableChallenge}
+              onVerifyDisable={verifyDisableMfa}
+              onCancelDisable={() => setShowDisableChallenge(false)}
             />
 
             {/* Name */}

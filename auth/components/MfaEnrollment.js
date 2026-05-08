@@ -58,6 +58,9 @@ export default function MfaEnrollment({ onComplete, onCancel }) {
 
       if (verifyError) throw verifyError;
 
+      // Refresh the session to upgrade to aal2
+      await supabase.auth.refreshSession();
+      console.log("This is completed on ");
       onComplete();
     } catch (err) {
       setError(err.message);

@@ -1,3 +1,4 @@
+// auth/hooks/v1/signUser.js
 "use client";
 
 import { useAuthLogic } from "../useAuthLogic";
@@ -9,7 +10,13 @@ import {
 } from "../../components/FormValidation";
 import MfaChallenge from "../../components/MfaChallenge";
 
-export const Auth = () => {
+export const Auth = ({
+  needsMfa,
+  mfaFactorId,
+  onCompleteMfa,
+  onCancelMfa,
+  user,
+}) => {
   const {
     isSignUp,
     name,
@@ -23,9 +30,6 @@ export const Auth = () => {
     setPassword,
     handleSubmit,
     toggleMode,
-    needsMfa,
-    mfaFactorId,
-    setNeedsMfa,
   } = useAuthLogic();
 
   // Real-time validation
@@ -34,7 +38,6 @@ export const Auth = () => {
   const nameError = isSignUp ? validateName(name, false) : null;
   const passwordStrength = getPasswordStrengthIndicator(password);
 
-  //ensures no parts of the form are blank or if error is returned do not continue
   const isFormValid = () => {
     if (!email || !password) return false;
     if (emailError || passwordError) return false;
@@ -42,16 +45,20 @@ export const Auth = () => {
     return true;
   };
 
+  // If MFA is required, show the challenge screen immediately
   if (needsMfa) {
     return (
       <MfaChallenge
         factorId={mfaFactorId}
-        onSuccess={() => setNeedsMfa(false)}
-        onCancel={() => setNeedsMfa(false)}
+        onVerify={onCompleteMfa}
+        onCancel={onCancelMfa}
+        error=""
+        loading={false}
       />
     );
   }
 
+  // Regular auth form (sign in / sign up)
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-gray-950 p-10 rounded-2xl shadow-2xl border border-gray-800">
@@ -61,58 +68,14 @@ export const Auth = () => {
           </h2>
         </div>
 
-        {/* Verification Email Sent Message */}
-        {verificationSent && (
-          <div className="rounded-lg bg-green-500/10 border border-green-500/50 p-4">
-            <p className="text-sm text-green-400">
-              Verification email sent to {email}. Please check your inbox and
-              click the link to verify your account.
-            </p>
-          </div>
-        )}
-
         {/* Error Message Display */}
         {errorMessage && (
           <div className="rounded-lg bg-red-500/10 border border-red-500/50 p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex-shrink-0">
-                <svg
-                  className="h-5 w-5 text-red-500"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-red-400">
-                  {errorMessage}
-                </p>
-              </div>
-              <button
-                onClick={() => setErrorMessage("")}
-                className="flex-shrink-0 text-gray-400 hover:text-gray-300"
-              >
-                <svg
-                  className="h-4 w-4"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </button>
-            </div>
+            <p className="text-sm text-red-400">{errorMessage}</p>
           </div>
         )}
 
+        {/* Only show form if not waiting for verification */}
         {!verificationSent && (
           <form onSubmit={handleSubmit} className="mt-8 space-y-6">
             <div className="space-y-4">
@@ -125,7 +88,6 @@ export const Auth = () => {
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <svg
                         className="h-5 w-5 text-gray-500"
-                        xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 20 20"
                         fill="currentColor"
                       >
@@ -165,7 +127,6 @@ export const Auth = () => {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg
                       className="h-5 w-5 text-gray-500"
-                      xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                     >
@@ -198,7 +159,6 @@ export const Auth = () => {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg
                       className="h-5 w-5 text-gray-500"
-                      xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                     >
@@ -255,21 +215,18 @@ export const Auth = () => {
                 )}
               </button>
             </div>
-          </form>
-        )}
 
-        {/* Toggle sign in/up - only show when not waiting for verification */}
-        {!verificationSent && (
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={toggleMode}
-              disabled={loading}
-              className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors duration-200 disabled:opacity-50"
-            >
-              Switch to {isSignUp ? "Sign In" : "Sign Up"}
-            </button>
-          </div>
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={toggleMode}
+                disabled={loading}
+                className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors duration-200 disabled:opacity-50"
+              >
+                Switch to {isSignUp ? "Sign In" : "Sign Up"}
+              </button>
+            </div>
+          </form>
         )}
       </div>
     </div>

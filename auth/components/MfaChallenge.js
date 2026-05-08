@@ -1,45 +1,26 @@
+// components/auth/MfaChallenge.js
 "use client";
 
 import { useState } from "react";
-import { supabase } from "../../lib/supabase/api";
 
-export default function MfaChallenge({ factorId, onSuccess, onCancel }) {
+export default function MfaChallenge({
+  factorId,
+  onVerify,
+  onCancel,
+  error: externalError,
+  loading: externalLoading,
+}) {
   const [code, setCode] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [localLoading, setLocalLoading] = useState(false);
 
   const handleVerify = async () => {
-    if (!code || code.length !== 6) {
-      setError("Enter the 6-digit code from your authenticator app.");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-
-    try {
-      const { data, error } = await supabase.auth.mfa.challenge({
-        factorId,
-      });
-
-      if (error) throw error;
-
-      const { data: verifyData, error: verifyError } =
-        await supabase.auth.mfa.verify({
-          factorId,
-          challengeId: data.id,
-          code,
-        });
-
-      if (verifyError) throw verifyError;
-
-      onSuccess();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    if (!code || code.length !== 6) return;
+    setLocalLoading(true);
+    await onVerify(code);
+    setLocalLoading(false);
   };
+
+  const loading = externalLoading || localLoading;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 p-4">
@@ -51,9 +32,9 @@ export default function MfaChallenge({ factorId, onSuccess, onCancel }) {
           Enter the 6-digit code from your authenticator app.
         </p>
 
-        {error && (
+        {externalError && (
           <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded">
-            <p className="text-red-400 text-sm">{error}</p>
+            <p className="text-red-400 text-sm">{externalError}</p>
           </div>
         )}
 
