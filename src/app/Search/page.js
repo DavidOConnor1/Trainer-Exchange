@@ -1,10 +1,10 @@
 // src/app/Search/page.js
 "use client";
 
-import CardDetail from "../../../components/cardApi/cardDetail";
+import CardDetail from "@/features/search/components/cardDetail";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useCardSearch } from "../../../hooks/v2/useCardSearch";
+import { useCardSearch } from "@/features/search/hooks/useCardSearch";
 import {
   getCardImage,
   formatPrice,

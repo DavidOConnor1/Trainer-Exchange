@@ -1,15 +1,14 @@
-// src/app/UserSettings/page.js
 "use client";
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../../auth/hooks/useAuth";
-import { useUserData } from "../../../hooks/v2/useUserData";
-import { useProfileUpdate } from "../../../hooks/v2/useProfileUpdate";
-import { useMfa } from "../../../hooks/v2/useMfa";
+import { useAuth } from "../../features/auth/hooks/useAuth";
+import { useUserData } from "../../features/user/hooks/useUserData";
+import { useProfileUpdate } from "../../features/user/hooks/useProfileUpdate";
+import { useMfa } from "../../features/auth/hooks/useMfa";
 import securityService from "../../../lib/security";
 import MfaEnrollment from "../../../auth/components/MfaEnrollment";
-import SecuritySection from "../../../auth/components/settings/SecuritySection";
+import SecuritySection from "../../features/auth/components/SecuritySection";
 import {
   ArrowLeft,
   Save,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTradeSession } from "../../../hooks/v2/useTradeSession";
+import { useTradeSession } from "../../features/trades/hooks/useTradeSession";
 import TradeColumn from "../../../components/trades/TradeColumn";
 import PriceModal from "../../../components/trades/PriceModal";
 import TradeSummary from "../../../components/trades/TradeSummary";

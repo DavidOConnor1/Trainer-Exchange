@@ -1,9 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Auth } from "../../../auth/hooks/v1/signUser";
-import { useAuth } from "../../../auth/hooks/useAuth";
-import UserCollections from "../../../collections/components/user/UserCollections";
+import { Auth } from "../../features/auth/hooks/AuthForm";
+import { useAuth } from "../../features/auth/hooks/useAuth";
+import UserCollections from "../../features/collections/components/UserCollections";
 import { Settings } from "lucide-react";
 
 export default function UsersPage() {
