@@ -2,13 +2,13 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../features/auth/hooks/useAuth";
-import { useUserData } from "../../features/user/hooks/useUserData";
-import { useProfileUpdate } from "../../features/user/hooks/useProfileUpdate";
-import { useMfa } from "../../features/auth/hooks/useMfa";
-import securityService from "../../../lib/security";
-import MfaEnrollment from "../../../auth/components/MfaEnrollment";
-import SecuritySection from "../../features/auth/components/SecuritySection";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useUserData } from "@/features/user/hooks/useUserData";
+import { useProfileUpdate } from "@/features/user/hooks/useProfileUpdate";
+import { useMfa } from "@/features/auth/hooks/useMfa";
+import securityService from "lib/security";
+import MfaEnrollment from "@/features/auth/components/MFA/MfaEnrollment";
+import SecuritySection from "@/features/auth/components/SecuritySection";
 import {
   ArrowLeft,
   Save,
