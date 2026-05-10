@@ -21,7 +21,7 @@ export default function CardDetail({ card, onClose }) {
         const backendUrl = (
           process.env.NEXT_PUBLIC_BACKEND_URL ||
           "https://prolific-heart.up.railway.app"
-        ).replacereplace(/\/$/, "");
+        ).replace(/\/$/, "");
         const res = await fetch(
           `${backendUrl}/api/cards/id/${card.id}/pricing`,
         );
