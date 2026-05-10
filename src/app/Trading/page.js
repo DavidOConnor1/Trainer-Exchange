@@ -1,10 +1,10 @@
 "use client";
 
-import { useTradeSession } from "../../features/trades/hooks/useTradeSession";
-import TradeColumn from "../../../components/trades/TradeColumn";
-import PriceModal from "../../../components/trades/PriceModal";
-import TradeSummary from "../../../components/trades/TradeSummary";
-import CollectionTradeModal from "../../../components/trades/CollectionTradeModal";
+import { useTradeSession } from "@/features/trades/hooks/useTradeSession";
+import TradeColumn from "@/features/trades/components/TradeColumn";
+import PriceModal from "@/features/trades/components/PriceModal";
+import TradeSummary from "@/features/trades/components/TradeSummary";
+import CollectionTradeModal from "@/features/trades/components/CollectionTradeModal";
 
 export default function TradingPage() {
   const {

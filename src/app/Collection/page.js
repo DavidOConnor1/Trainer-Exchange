@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import CollectionManager from "../../../collections/components/CollectionManager";
-import TradesTab from "../../../components/trades/TradesTab";
+import CollectionManager from "@/features/collections/components/CollectionManager";
+import TradesTab from "@/features/trades/components/TradesTab";
 
 export default function CollectionPage() {
   const [activeTab, setActiveTab] = useState("collections");

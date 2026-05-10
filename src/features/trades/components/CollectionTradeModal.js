@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabase/api";
-import { useCollections } from "../../src/features/collections/hooks/useCollections";
+import { useCollections } from "@/features/collections/hooks/useCollectionStore";
 import Image from "next/image";
 
 export default function CollectionTradeModal({ onClose, onSelectCard }) {

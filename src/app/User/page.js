@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Auth } from "../../features/auth/hooks/AuthForm";
+import { Auth } from "../../features/auth/components/Form/AuthForm";
 import { useAuth } from "../../features/auth/hooks/useAuth";
 import UserCollections from "../../features/collections/components/UserCollections";
 import { Settings } from "lucide-react";

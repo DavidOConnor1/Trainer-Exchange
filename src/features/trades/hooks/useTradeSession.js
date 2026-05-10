@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useTrades } from "./useTrades";
-import { useCardSearch } from "./useCardSearch";
+import { useCardSearch } from "@/features/search/hooks/useCardSearch";
 import { getCardImage } from "../../../../lib/pokemonApi/searchService";
 import { supabase } from "../../../../lib/supabase/api";
 

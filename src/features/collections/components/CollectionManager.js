@@ -1,8 +1,8 @@
 "use client";
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useCollections } from "../../hooks/v1/useCollections";
-import { useCards } from "../../hooks/v1/useCards";
-import { useAuth } from "../../src/features/auth/hooks/useAuth";
+import { useCollections } from "../hooks/useCollectionStore";
+import { useCards } from "../hooks/useCards";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import Image from "next/image";
 
 export default function CollectionManager() {

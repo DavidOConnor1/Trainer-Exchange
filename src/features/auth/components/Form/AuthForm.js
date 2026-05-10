@@ -1,14 +1,14 @@
 "use client";
 
-import { useAuthLogic } from "./useAuthLogic";
+import { useAuthLogic } from "../../hooks/useAuthLogic";
 import {
   validateEmail,
   validatePassword,
   validateName,
   getPasswordStrengthIndicator,
-} from "../components/Form/FormValidation";
+} from "./FormValidation";
 
-import MfaChallenge from "../components/MFA/MfaChallenge";
+import MfaChallenge from "../MFA/MfaChallenge";
 
 export const Auth = ({
   needsMfa,

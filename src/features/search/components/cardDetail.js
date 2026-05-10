@@ -1,4 +1,3 @@
-// components/cardApi/CardDetail.js
 "use client";
 
 import { useState, useEffect } from "react";
