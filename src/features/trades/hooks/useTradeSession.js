@@ -57,10 +57,10 @@ export function useTradeSession() {
 
   // ----- pre‑fetch pricing for all search results -----
   const prefetchPrices = useCallback(async (cards) => {
-    const backendUrl =
+    const backendUrl = (
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      "https://trainer-exchange-backend-services-production.up.railway.app";
-
+      "https://trainer-exchange-backend-services-production.up.railway.app"
+    ).replace(/\/$/, "");
     const toFetch = cards.filter(
       (c) => !priceCache.current[c.id] && !fetchingPrices.current.has(c.id),
     );
