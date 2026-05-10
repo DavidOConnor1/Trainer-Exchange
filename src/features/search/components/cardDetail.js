@@ -18,9 +18,10 @@ export default function CardDetail({ card, onClose }) {
     const fetchPricing = async () => {
       setLoadingPricing(true);
       try {
-        const backendUrl =
+        const backendUrl = (
           process.env.NEXT_PUBLIC_BACKEND_URL ||
-          "https://prolific-heart.up.railway.app";
+          "https://prolific-heart.up.railway.app"
+        ).replacereplace(/\/$/, "");
         const res = await fetch(
           `${backendUrl}/api/cards/id/${card.id}/pricing`,
         );
